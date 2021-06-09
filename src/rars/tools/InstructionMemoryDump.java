@@ -45,7 +45,7 @@
  * The file you generate has one line per datum. The four kinds of
  *   data you will see in the trace are:
  *
- * ‘I”: The address of an access into instruction memory
+ * ‘I': The address of an access into instruction memory
  * ‘i’: A 32-bit RISC-V instruction (the trace first dumps the address then
  *      the instruction)
  * ‘L’: The address of a memory load into data memory

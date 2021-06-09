@@ -76,10 +76,6 @@ public class SystemIO {
     private static final int STDOUT = 1;
     private static final int STDERR = 2;
 
-    // Will use one buffered reader for all keyboard/redirected/piped input.
-    // Added by DPS 28 Feb 2008.  See getInputReader() below.
-    private static BufferedReader inputReader = null;
-
     /**
      * Implements syscall to read an integer value.
      * Client is responsible for catching NumberFormatException.
@@ -142,11 +138,13 @@ public class SystemIO {
      */
     public static void printString(String string) {
         if (Globals.getGui() == null) {
-            System.out.print(string);
+		try {
+			SystemIO.getOutputWriter().write(string);
+		} catch (IOException e){
+		}
         } else {
             print2Gui(string);
         }
-
     }
 
 
@@ -435,10 +433,16 @@ public class SystemIO {
     // transparent to it.  Lazy instantiation.  DPS.  28 Feb 2008
 
     private static BufferedReader getInputReader() {
-        if (inputReader == null) {
-            inputReader = new BufferedReader(new InputStreamReader(System.in));
+        if (FileIOData.inputReader == null) {
+            FileIOData.inputReader = new BufferedReader(new InputStreamReader(System.in));
         }
-        return inputReader;
+        return FileIOData.inputReader;
+    }
+    private static BufferedWriter getOutputWriter(){
+	    if (FileIOData.outputWriter==null){
+		    FileIOData.outputWriter=new BufferedWriter(new OutputStreamWriter(System.out));
+	    }
+	    return FileIOData.outputWriter;
     }
 
     // The GUI doesn't handle lots of small messages well so I added this hacky way of buffering
@@ -468,15 +472,20 @@ public class SystemIO {
         }
     }
 
-
     public static Data swapData(Data in){
         Data temp = new Data(false);
         temp.fileNames = FileIOData.fileNames;
         temp.fileFlags = FileIOData.fileFlags;
         temp.streams = FileIOData.streams;
+	temp.inputReader=FileIOData.inputReader;
+	temp.outputWriter=FileIOData.outputWriter;
+	temp.errorWriter=FileIOData.errorWriter;
         FileIOData.fileNames = in.fileNames;
         FileIOData.fileFlags = in.fileFlags;
         FileIOData.streams = in.streams;
+	FileIOData.inputReader=in.inputReader;
+	FileIOData.outputWriter=in.outputWriter;
+	FileIOData.errorWriter=in.errorWriter;
         return temp;
     }
 
@@ -484,6 +493,9 @@ public class SystemIO {
         private String[] fileNames; // The filenames in use. Null if file descriptor i is not in use.
         private int[] fileFlags; // The flags of this file, 0=READ, 1=WRITE. Invalid if this file descriptor is not in use.
         public Closeable[] streams;
+    	public BufferedReader inputReader;
+    	public BufferedWriter outputWriter;
+    	public BufferedWriter errorWriter;
         public Data(boolean generate){
             if(generate) {
                 fileNames = new String[SYSCALL_MAXFILES];
@@ -500,6 +512,16 @@ public class SystemIO {
                 streams[STDERR] = System.err;
             }
         }
+
+	public Data(ByteArrayInputStream in, ByteArrayOutputStream out, ByteArrayOutputStream err){
+		this(true);
+		this.streams[STDIN]=in;
+		this.streams[STDOUT]=out;
+		this.streams[STDERR]=err;
+		this.inputReader=new BufferedReader(new InputStreamReader(in));
+		this.outputWriter=new BufferedWriter(new OutputStreamWriter(out));
+		this.errorWriter=new BufferedWriter(new OutputStreamWriter(err));
+	}
     }
 
     // //////////////////////////////////////////////////////////////////////////////
@@ -510,13 +532,31 @@ public class SystemIO {
         private static String[] fileNames = new String[SYSCALL_MAXFILES]; // The filenames in use. Null if file descriptor i is not in use.
         private static int[] fileFlags = new int[SYSCALL_MAXFILES]; // The flags of this file, 0=READ, 1=WRITE. Invalid if this file descriptor is not in use.
         private static Closeable[] streams = new Closeable[SYSCALL_MAXFILES]; // The streams in use, associated with the filenames
-
+    	public static BufferedReader inputReader;
+    	public static BufferedWriter outputWriter;
+    	public static BufferedWriter errorWriter;
 
         // Reset all file information. Closes any open files and resets the arrays
         private static void resetFiles() {
             for (int i = 0; i < SYSCALL_MAXFILES; i++) {
                 close(i);
             }
+	    if (outputWriter!=null){
+	        try {
+	        	outputWriter.close();
+			outputWriter=null;
+	        } catch (IOException e){
+
+	        }
+	    }
+	    if (errorWriter!=null){
+	        try {
+	        	errorWriter.close();
+			errorWriter=null;
+	        } catch (IOException e){
+
+	        }
+	    }
             setupStdio();
         }
 
