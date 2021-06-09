@@ -84,7 +84,7 @@ public class VenusUI extends JFrame {
     private JMenuItem runGo, runStep, runBackstep, runReset, runAssemble, runStop, runPause, runClearBreakpoints, runToggleBreakpoints;
     private JCheckBoxMenuItem settingsLabel, settingsPopupInput, settingsValueDisplayBase, settingsAddressDisplayBase,
             settingsExtended, settingsAssembleOnOpen, settingsAssembleAll, settingsAssembleOpen, settingsWarningsAreErrors,
-            settingsStartAtMain, settingsProgramArguments, settingsSelfModifyingCode,settingsRV64;
+            settingsStartAtMain, settingsDelegateExceptions, settingsProgramArguments, settingsSelfModifyingCode,settingsRV64;
     private JMenuItem settingsExceptionHandler, settingsEditor, settingsHighlighting, settingsMemoryConfiguration;
     private JMenuItem helpHelp, helpAbout;
 
@@ -107,8 +107,8 @@ public class VenusUI extends JFrame {
             runStopAction, runPauseAction, runClearBreakpointsAction, runToggleBreakpointsAction;
     private Action settingsLabelAction, settingsPopupInputAction, settingsValueDisplayBaseAction, settingsAddressDisplayBaseAction,
             settingsExtendedAction, settingsAssembleOnOpenAction, settingsAssembleOpenAction, settingsAssembleAllAction,
-            settingsWarningsAreErrorsAction, settingsStartAtMainAction, settingsProgramArgumentsAction,
-            settingsExceptionHandlerAction, settingsEditorAction,
+            settingsWarningsAreErrorsAction, settingsStartAtMainAction, settingsDelegateExceptionsAction,
+            settingsProgramArgumentsAction, settingsExceptionHandlerAction, settingsEditorAction,
             settingsHighlightingAction, settingsMemoryConfigurationAction, settingsSelfModifyingCodeAction,settingsRV64Action;
     private Action helpHelpAction, helpAboutAction;
 
@@ -435,6 +435,9 @@ public class VenusUI extends JFrame {
             settingsStartAtMainAction = new SettingsAction("Initialize Program Counter to global 'main' if defined",
                     "If set, assembler will initialize Program Counter to text address globally labeled 'main', if defined.",
                     Settings.Bool.START_AT_MAIN);
+            settingsDelegateExceptionsAction = new SettingsAction("Delegate exceptions",
+                    "If set, all exceptions are delegated to U-mode (medeleg set to 0xffff).",
+                    Settings.Bool.DELEGATE_EXCEPTIONS);
             settingsProgramArgumentsAction = new SettingsAction("Program arguments provided to program",
                     "If set, program arguments for the program can be entered in border of Text Segment window.",
                     Settings.Bool.PROGRAM_ARGUMENTS) {
@@ -625,6 +628,8 @@ public class VenusUI extends JFrame {
         settingsWarningsAreErrors.setSelected(Globals.getSettings().getBooleanSetting(Settings.Bool.WARNINGS_ARE_ERRORS));
         settingsStartAtMain = new JCheckBoxMenuItem(settingsStartAtMainAction);
         settingsStartAtMain.setSelected(Globals.getSettings().getBooleanSetting(Settings.Bool.START_AT_MAIN));
+        settingsDelegateExceptions = new JCheckBoxMenuItem(settingsDelegateExceptionsAction);
+        settingsDelegateExceptions.setSelected(Globals.getSettings().getBooleanSetting(Settings.Bool.DELEGATE_EXCEPTIONS));
         settingsProgramArguments = new JCheckBoxMenuItem(settingsProgramArgumentsAction);
         settingsProgramArguments.setSelected(Globals.getSettings().getBooleanSetting(Settings.Bool.PROGRAM_ARGUMENTS));
         settingsEditor = new JMenuItem(settingsEditorAction);
@@ -643,6 +648,7 @@ public class VenusUI extends JFrame {
         settings.add(settingsAssembleOpen);
         settings.add(settingsWarningsAreErrors);
         settings.add(settingsStartAtMain);
+        settings.add(settingsDelegateExceptions);
         settings.addSeparator();
         settings.add(settingsExtended);
         settings.add(settingsSelfModifyingCode);

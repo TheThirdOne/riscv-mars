@@ -267,7 +267,7 @@ public class Simulator extends Observable {
             int base = utvec & 0xFFFFFFFC;
 
             ProgramStatement exceptionHandler = null;
-            if ((ControlAndStatusRegisterFile.getValue("ustatus") & 0x1) != 0) { // test user-interrupt enable (UIE)
+            if ((ControlAndStatusRegisterFile.getValue("medeleg") & (1 << se.cause())) != 0) { // test if this exception is delegated
                 try {
                     exceptionHandler = Globals.memory.getStatement(base);
                 } catch (AddressErrorException aee) {

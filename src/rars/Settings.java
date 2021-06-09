@@ -126,6 +126,10 @@ public class Settings extends Observable {
          */
         START_AT_MAIN("StartAtMain", false),
         /**
+         * Flag to control whether or not exceptions are delegated to U-mode. If set, medeleg is initialized to 0xffff.
+         */
+        DELEGATE_EXCEPTIONS("DelegateExceptions", false),
+        /**
          * Flag to control whether or not editor will highlight the line currently being edited
          */
         EDITOR_CURRENT_LINE_HIGHLIGHTING("EditorCurrentLineHighlighting", true),
