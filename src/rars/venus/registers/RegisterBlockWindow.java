@@ -354,6 +354,9 @@ public abstract class RegisterBlockWindow extends JPanel implements Observer {
             int realColumnIndex = convertColumnIndexToModel(colIndex);
             if (realColumnIndex == NAME_COLUMN) { //Register name column
                 return regToolTips[rowIndex];
+            }
+            if (realColumnIndex == VALUE_COLUMN) { //Register value column
+                return Long.toString(registers[rowIndex].getValue());
             } else {
                 //You can omit this part if you know you don't have any
                 //renderers that supply their own tool tips.
