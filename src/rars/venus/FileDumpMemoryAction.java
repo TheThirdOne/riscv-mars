@@ -5,8 +5,8 @@ import rars.riscv.dump.DumpFormat;
 import rars.riscv.dump.DumpFormatLoader;
 import rars.riscv.hardware.AddressErrorException;
 import rars.riscv.hardware.Memory;
+import rars.riscv.hardware.Range;
 import rars.util.Binary;
-import rars.util.MemoryDump;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -56,13 +56,6 @@ public class FileDumpMemoryAction extends GuiAction {
     private JDialog dumpDialog;
     private static final String title = "Dump Memory To File";
 
-    // A series of parallel arrays representing the memory segments that can be dumped.
-    private String[] segmentArray;
-    private int[] baseAddressArray;
-    private int[] limitAddressArray;
-    private int[] highAddressArray;
-    // These three are allocated and filled by buildDialogPanel() and used by action listeners.
-    private String[] segmentListArray;
     private int[] segmentListBaseArray;
     private int[] segmentListHighArray;
 
@@ -112,13 +105,14 @@ public class FileDumpMemoryAction extends GuiAction {
         JPanel contents = new JPanel(new BorderLayout(20, 20));
         contents.setBorder(new EmptyBorder(10, 10, 10, 10));
 
-        segmentArray = MemoryDump.getSegmentNames();
-        baseAddressArray = MemoryDump.getBaseAddresses(segmentArray);
-        limitAddressArray = MemoryDump.getLimitAddresses(segmentArray);
-        highAddressArray = new int[segmentArray.length];
+        // A series of parallel arrays representing the memory segments that can be dumped.
+        String[] segmentArray = new String[]{".text", ".data"};
+        Range[] segments = new Range[]{Memory.configuration.text,Memory.configuration.data};
+        int[] highAddressArray = new int[segmentArray.length];
 
 
-        segmentListArray = new String[segmentArray.length];
+        // These three are allocated and filled by buildDialogPanel() and used by action listeners.
+        String[] segmentListArray = new String[segmentArray.length];
         segmentListBaseArray = new int[segmentArray.length];
         segmentListHighArray = new int[segmentArray.length];
 
@@ -134,18 +128,18 @@ public class FileDumpMemoryAction extends GuiAction {
 
         for (int i = 0; i < segmentArray.length; i++) {
             try {
-                highAddressArray[i] = Globals.memory.getAddressOfFirstNull(baseAddressArray[i], limitAddressArray[i]) - Memory.WORD_LENGTH_BYTES;
+                highAddressArray[i] = Globals.memory.getAddressOfFirstNull(segments[i].low, segments[i].high) - Memory.WORD_LENGTH_BYTES;
 
             }  // Exception will not happen since the Memory base and limit addresses are on word boundaries!
             catch (AddressErrorException aee) {
-                highAddressArray[i] = baseAddressArray[i] - Memory.WORD_LENGTH_BYTES;
+                highAddressArray[i] = segments[i].low - Memory.WORD_LENGTH_BYTES;
             }
-            if (highAddressArray[i] >= baseAddressArray[i]) {
-                segmentListBaseArray[segmentCount] = baseAddressArray[i];
-                segmentListHighArray[segmentCount] = highAddressArray[i];
+            if (highAddressArray[i] >= segments[i].low) {
+                segmentListBaseArray[segmentCount] = segments[i].low;
+                segmentListHighArray[segmentCount] = segments[i].high;
                 segmentListArray[segmentCount] =
-                        segmentArray[i] + " (" + Binary.intToHexString(baseAddressArray[i]) +
-                                " - " + Binary.intToHexString(highAddressArray[i]) + ")";
+                        segmentArray[i] + " (" + Binary.intToHexString(segments[i].low) +
+                                " - " + Binary.intToHexString(segments[i].high) + ")";
                 segmentCount++;
             }
         }

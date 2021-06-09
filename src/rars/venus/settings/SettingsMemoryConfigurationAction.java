@@ -3,6 +3,7 @@ package rars.venus.settings;
 import rars.Globals;
 import rars.riscv.hardware.MemoryConfiguration;
 import rars.riscv.hardware.MemoryConfigurations;
+import rars.riscv.hardware.Range;
 import rars.simulator.Simulator;
 import rars.util.Binary;
 import rars.venus.FileStatus;
@@ -15,6 +16,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
@@ -129,8 +132,8 @@ public class SettingsMemoryConfigurationAction extends GuiAction {
         private Component buildConfigDisplay() {
             JPanel displayPanel = new JPanel();
             MemoryConfiguration config = MemoryConfigurations.getCurrentConfiguration();
-            String[] configurationItemNames = config.getConfigurationItemNames();
-            int numItems = configurationItemNames.length;
+            Map<String, Range> ranges = config.sections;
+            int numItems = ranges.size()+2;
             JPanel namesPanel = new JPanel(new GridLayout(numItems, 1));
             JPanel valuesPanel = new JPanel(new GridLayout(numItems, 1));
             Font monospaced = new Font("Monospaced", Font.PLAIN, 12);
@@ -205,6 +208,24 @@ public class SettingsMemoryConfigurationAction extends GuiAction {
                             performReset();
                         }
                     });
+            JButton loadButton = new JButton("Load");
+            loadButton.setToolTipText("Load a properties files that specifies a config. Check the wiki");
+            loadButton.addActionListener(e -> {
+                        JFileChooser choose = new JFileChooser();
+                        if(JFileChooser.APPROVE_OPTION == choose.showOpenDialog(this)){
+                            System.out.println("You chose to open this file: " + choose.getSelectedFile().getName());
+                            try {
+                                MemoryConfiguration mc = MemoryConfigurations.loadNewConfig(new FileInputStream(choose.getSelectedFile()));
+                                if(MemoryConfigurations.getConfigurationByName(mc.getConfigurationName()) == null){
+                                    MemoryConfigurations.addNewConfig(mc);
+                                    this.setContentPane(buildDialogPanel());
+                                    this.setVisible(true);
+                                }
+                            } catch (FileNotFoundException ex) {
+                                return;
+                            }
+                        }
+                    });
             controlPanel.add(Box.createHorizontalGlue());
             controlPanel.add(okButton);
             controlPanel.add(Box.createHorizontalGlue());
@@ -213,6 +234,8 @@ public class SettingsMemoryConfigurationAction extends GuiAction {
             controlPanel.add(cancelButton);
             controlPanel.add(Box.createHorizontalGlue());
             controlPanel.add(resetButton);
+            controlPanel.add(Box.createHorizontalGlue());
+            controlPanel.add(loadButton);
             controlPanel.add(Box.createHorizontalGlue());
             return controlPanel;
         }
@@ -251,25 +274,26 @@ public class SettingsMemoryConfigurationAction extends GuiAction {
 
         // Set name values in JLabels and address values in the JTextFields
         private void setConfigDisplay(MemoryConfiguration config) {
-            String[] configurationItemNames = config.getConfigurationItemNames();
-            int[] configurationItemValues = config.getConfigurationItemValues();
+            Map<String, Range> ranges = config.sections;
+            TreeMap<String, String> treeSortedByAddress = new TreeMap<>();
+            String rangestring="";
+            for (Map.Entry<String,Range> entry: ranges.entrySet()) {
+                rangestring = Binary.intToHexString(entry.getValue().low) + "-" + Binary.intToHexString(entry.getValue().high);
+                treeSortedByAddress.put(rangestring,entry.getKey());
+            }
+            treeSortedByAddress.put(Binary.intToHexString(config.extern_size + config.data.low),"Default .data start");
+            treeSortedByAddress.put(Binary.intToHexString(config.gp_offset + config.data.low),"Global pointer");
+
             // Will use TreeMap to extract list of address-name pairs sorted by
             // hex-stringified address. This will correctly handle kernel addresses,
             // whose int values are negative and thus normal sorting yields incorrect
-            // results.  There can be duplicate addresses, so I concatenate the name
-            // onto the address to make each key unique.  Then slice off the name upon
-            // extraction.
-            TreeMap<String, String> treeSortedByAddress = new TreeMap<>();
-            for (int i = 0; i < configurationItemValues.length; i++) {
-                treeSortedByAddress.put(Binary.intToHexString(configurationItemValues[i]) + configurationItemNames[i], configurationItemNames[i]);
-            }
+            // results.
             Iterator<Map.Entry<String, String>> setSortedByAddress = treeSortedByAddress.entrySet().iterator();
             Map.Entry<String, String> pair;
-            int addressStringLength = Binary.intToHexString(configurationItemValues[0]).length();
-            for (int i = 0; i < configurationItemValues.length; i++) {
+            for (int i = 0; i < treeSortedByAddress.size(); i++) {
                 pair = setSortedByAddress.next();
                 nameDisplay[i].setText(pair.getValue());
-                addressDisplay[i].setText(pair.getKey().substring(0, addressStringLength));
+                addressDisplay[i].setText(pair.getKey());
             }
         }
 

@@ -28,6 +28,11 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 (MIT license, http://www.opensource.org/licenses/mit-license.html)
  */
 
+import rars.util.Binary;
+
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Models the memory configuration for the simulated MIPS machine.
  * "configuration" refers to the starting memory addresses for
@@ -41,19 +46,31 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 public class MemoryConfiguration {
-    // TODO: remove kernel mode maybe?
-    // TODO: move away from a multi-array approach to array of ranges approach
     // Identifier is used for saving setting; name is used for display
     private String configurationIdentifier, configurationName;
-    private String[] configurationItemNames;
-    private int[] configurationItemValues;
 
+    public final Range text, data, heap, stack, mmio, total;
+    public final Map<String, Range> sections;
+    public final int gp_offset, extern_size;
+    public final boolean builtin;
 
-    public MemoryConfiguration(String ident, String name, String[] items, int[] values) {
+    public MemoryConfiguration(String ident, String name, Map<String, Range> sections, int gp_offset, int extern_size){
+        this(ident, name, sections, gp_offset,extern_size,true);
+    }
+    public MemoryConfiguration(String ident, String name, Map<String, Range> sections, int gp_offset, int extern_size, boolean builtin){
         this.configurationIdentifier = ident;
         this.configurationName = name;
-        this.configurationItemNames = items;
-        this.configurationItemValues = values;
+        this.builtin = builtin;
+        text  = sections.get(".text");
+        data  = sections.get(".data");
+        heap = sections.get("heap");
+        stack = sections.get("stack");
+        mmio  = sections.get("mmio");
+        total = sections.values().stream().reduce(text, Range::combine);
+        this.sections = new HashMap<>();
+        this.sections.putAll(sections);
+        this.gp_offset = gp_offset;
+        this.extern_size = extern_size;
     }
 
     public String getConfigurationIdentifier() {
@@ -64,76 +81,57 @@ public class MemoryConfiguration {
         return configurationName;
     }
 
-    public int[] getConfigurationItemValues() {
-        return configurationItemValues;
-    }
-
-    public String[] getConfigurationItemNames() {
-        return configurationItemNames;
-    }
-
     public int getTextBaseAddress() {
-        return configurationItemValues[0];
+        return text.low;
     }
 
     public int getDataSegmentBaseAddress() {
-        return configurationItemValues[1];
+        return data.low;
     }
 
     public int getExternBaseAddress() {
-        return configurationItemValues[2];
+        return data.low;
     }
 
     public int getGlobalPointer() {
-        return configurationItemValues[3];
+        return data.low+gp_offset;
     }
 
     public int getDataBaseAddress() {
-        return configurationItemValues[4];
+        return data.low+extern_size;
     }
 
     public int getHeapBaseAddress() {
-        return configurationItemValues[5];
-    }
-
-    public int getStackPointer() {
-        return configurationItemValues[6];
+        return heap.low;
     }
 
     public int getStackBaseAddress() {
-        return configurationItemValues[7];
-    }
-
-    public int getUserHighAddress() {
-        return configurationItemValues[8];
-    }
-
-    public int getKernelBaseAddress() {
-        return configurationItemValues[9];
+        return stack.high;
     }
 
     public int getMemoryMapBaseAddress() {
-        return configurationItemValues[10];
-    }
-
-    public int getKernelHighAddress() {
-        return configurationItemValues[11];
+        return mmio.low;
     }
 
     public int getDataSegmentLimitAddress() {
-        return configurationItemValues[12];
+        return heap.high;
     }
 
     public int getTextLimitAddress() {
-        return configurationItemValues[13];
+        return text.high;
     }
 
-    public int getStackLimitAddress() {
-        return configurationItemValues[14];
+    public String toPropertiesString(){
+        StringBuilder sb = new StringBuilder();
+        for(Map.Entry<String,Range> entry : sections.entrySet()){
+            sb.append(entry.getKey()).append(" = ");
+            sb.append(Binary.intToHexString(entry.getValue().low)).append('-');
+            sb.append(Binary.intToHexString(entry.getValue().high)).append('\n');
+        }
+        sb.append("name = ").append(configurationName).append('\n');
+        sb.append("ident = ").append(configurationIdentifier).append('\n');
+        sb.append("gp_offset = ").append(Binary.intToHexString(gp_offset)).append('\n');
+        sb.append("extern_offset = ").append(Binary.intToHexString(extern_size)).append('\n');
+        return sb.toString();
     }
-
-    public int getMemoryMapLimitAddress() {
-        return configurationItemValues[15];
-    }
-
 }

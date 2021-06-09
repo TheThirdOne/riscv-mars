@@ -4,9 +4,12 @@ import rars.assembler.SymbolTable;
 import rars.riscv.hardware.Memory;
 import rars.riscv.InstructionSet;
 import rars.riscv.SyscallNumberOverride;
+import rars.riscv.hardware.MemoryConfiguration;
+import rars.riscv.hardware.MemoryConfigurations;
 import rars.util.PropertiesFile;
 import rars.venus.VenusUI;
 
+import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Properties;
@@ -173,6 +176,12 @@ public class Globals {
             instructionSet.populate();
             initialized = true;
             debug = false;
+            String tmp = settings.getMemoryCustomConfiguration();
+            if(!tmp.equals("")){
+                MemoryConfiguration mc = MemoryConfigurations.loadNewConfig(new ByteArrayInputStream(tmp.getBytes()));
+                if (mc != null) MemoryConfigurations.addNewConfig(mc);
+            }
+            MemoryConfigurations.setCurrentConfiguration(MemoryConfigurations.getConfigurationByName(settings.getMemoryConfiguration()));
             memory.clear(); // will establish memory configuration from setting
         }
     }

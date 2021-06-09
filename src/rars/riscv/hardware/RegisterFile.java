@@ -48,8 +48,8 @@ public class RegisterFile {
     public static final int STACK_POINTER_REGISTER = 2;
     private static final RegisterBlock instance = new RegisterBlock('x', new Register[]{
             new Register("zero", 0, 0), new Register("ra", 1, 0),
-            new Register("sp", STACK_POINTER_REGISTER, Memory.stackPointer),
-            new Register("gp", GLOBAL_POINTER_REGISTER, Memory.globalPointer),
+            new Register("sp", STACK_POINTER_REGISTER, Memory.configuration.getStackBaseAddress()),
+            new Register("gp", GLOBAL_POINTER_REGISTER, Memory.configuration.getGlobalPointer()),
             new Register("tp", 4, 0), new Register("t0", 5, 0),
             new Register("t1", 6, 0), new Register("t2", 7, 0),
             new Register("s0", 8, 0), new Register("s1", 9, 0),
@@ -66,7 +66,7 @@ public class RegisterFile {
             new Register("t5", 30, 0), new Register("t6", 31, 0)
     });
 
-    private static Register programCounter = new Register("pc", -1, Memory.textBaseAddress);
+    private static Register programCounter = new Register("pc", -1, Memory.configuration.getTextBaseAddress());
 
     /**
      * This method updates the register value who's number is num.  Also handles the lo and hi registers

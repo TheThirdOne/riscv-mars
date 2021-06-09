@@ -116,7 +116,7 @@ public class BHTSimulator extends AbstractToolAndApplication implements ActionLi
      * Adds BHTSimulator as observer of the text segment.
      */
     protected void addAsObserver() {
-        addAsObserver(Memory.textBaseAddress, Memory.textLimitAddress);
+        addAsObserver(Memory.configuration.text.low,Memory.configuration.text.high);
         addAsObserver(RegisterFile.getProgramCounterRegister());
     }
 

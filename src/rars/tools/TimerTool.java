@@ -50,8 +50,8 @@ import javax.swing.*;
 public class TimerTool extends AbstractToolAndApplication {
     private static String heading = "Timer Tool";
     private static String version = "Version 1.0 (Zachary Selk)";
-    private static final int TIME_ADDRESS = Memory.memoryMapBaseAddress + 0x18;
-    private static final int TIME_CMP_ADDRESS = Memory.memoryMapBaseAddress + 0x20;
+    private static final int TIME_ADDRESS = Memory.configuration.getMemoryMapBaseAddress() + 0x18;
+    private static final int TIME_CMP_ADDRESS = Memory.configuration.getMemoryMapBaseAddress() + 0x20;
 
     // GUI window sections
     private static JPanel panelTools;

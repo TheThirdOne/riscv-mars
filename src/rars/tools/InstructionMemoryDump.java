@@ -160,15 +160,10 @@ public class InstructionMemoryDump extends AbstractToolAndApplication {
         return name;
     }
 
-    private int lowDataSegmentAddress = Memory.dataSegmentBaseAddress;
-    private int highDataSegmentAddress = Memory.stackBaseAddress;
-
     @Override
     protected void addAsObserver() {
-        // watch the text segment (the program)
-        addAsObserver(Memory.textBaseAddress, Memory.textLimitAddress);
-        // also watch the data segment
-        addAsObserver(lowDataSegmentAddress, highDataSegmentAddress);
+        // watch everything
+        addAsObserver(Memory.configuration.total.low,Memory.configuration.total.high);
     }
 
     @Override
@@ -179,7 +174,7 @@ public class InstructionMemoryDump extends AbstractToolAndApplication {
         int a = m.getAddress();
 
         // is a in the text segment (program)?
-        if ((a >= Memory.textBaseAddress) && (a < Memory.textLimitAddress)) {
+        if (Memory.configuration.text.contains(a,m.getLength())) {
             if (notice.getAccessType() != AccessNotice.READ) return;
             if (a == lastAddress) return;
             lastAddress = a;
@@ -204,10 +199,7 @@ public class InstructionMemoryDump extends AbstractToolAndApplication {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
             }
-        }
-
-        // is a in the data segment?
-        if ((a >= lowDataSegmentAddress) && (a < highDataSegmentAddress)) {
+        } else {
             if (notice.getAccessType() == AccessNotice.READ) log.append("L: 0x");
             if (notice.getAccessType() == AccessNotice.WRITE) log.append("S: 0x");
             log.append(Integer.toUnsignedString(a, 16) + "\n");

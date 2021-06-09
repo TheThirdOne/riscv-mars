@@ -43,11 +43,11 @@ public class DigitalLabSim extends AbstractToolAndApplication {
     public DigitalLabSim(String title, String heading) {
         super(title, heading);
 
-        IN_ADRESS_DISPLAY_1 = Memory.memoryMapBaseAddress + 0x10;
-        IN_ADRESS_DISPLAY_2 = Memory.memoryMapBaseAddress + 0x11;
-        IN_ADRESS_HEXA_KEYBOARD = Memory.memoryMapBaseAddress + 0x12;
-        IN_ADRESS_COUNTER = Memory.memoryMapBaseAddress + 0x13;
-        OUT_ADRESS_HEXA_KEYBOARD = Memory.memoryMapBaseAddress + 0x14;
+        IN_ADRESS_DISPLAY_1 = Memory.configuration.getMemoryMapBaseAddress() + 0x10;
+        IN_ADRESS_DISPLAY_2 = Memory.configuration.getMemoryMapBaseAddress() + 0x11;
+        IN_ADRESS_HEXA_KEYBOARD = Memory.configuration.getMemoryMapBaseAddress() + 0x12;
+        IN_ADRESS_COUNTER = Memory.configuration.getMemoryMapBaseAddress() + 0x13;
+        OUT_ADRESS_HEXA_KEYBOARD = Memory.configuration.getMemoryMapBaseAddress() + 0x14;
     }
 
     public DigitalLabSim() {
@@ -65,7 +65,7 @@ public class DigitalLabSim extends AbstractToolAndApplication {
 
     protected void addAsObserver() {
         addAsObserver(IN_ADRESS_DISPLAY_1, IN_ADRESS_DISPLAY_1);
-        addAsObserver(Memory.textBaseAddress, Memory.textLimitAddress);
+        addAsObserver(Memory.configuration.text.low,Memory.configuration.text.high);
     }
 
     public void update(Observable ressource, Object accessNotice) {

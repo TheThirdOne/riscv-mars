@@ -1,5 +1,7 @@
 package rars;
 
+import rars.riscv.hardware.MemoryConfiguration;
+import rars.riscv.hardware.MemoryConfigurations;
 import rars.util.Binary;
 import rars.util.EditorFont;
 import rars.venus.editors.jeditsyntax.SyntaxStyle;
@@ -205,8 +207,14 @@ public class Settings extends Observable {
      * Number of letters to be matched by editor's instruction guide before popup generated (if popup enabled)
      */
     public static final int EDITOR_POPUP_PREFIX_LENGTH = 6;
+
+    /**
+     * String representing a custom memory config property file
+     */
+    public static final int CUSTOM_MEMORY_CONFIG = 7;
+
     // Match the above by position.
-    private static final String[] stringSettingsKeys = {"ExceptionHandler", "TextColumnOrder", "LabelSortState", "MemoryConfiguration", "CaretBlinkRate", "EditorTabSize", "EditorPopupPrefixLength"};
+    private static final String[] stringSettingsKeys = {"ExceptionHandler", "TextColumnOrder", "LabelSortState", "MemoryConfiguration", "CaretBlinkRate", "EditorTabSize", "EditorPopupPrefixLength", "CustomMemoryConfig"};
 
     /**
      * Last resort default values for String settings;
@@ -214,7 +222,7 @@ public class Settings extends Observable {
      * If you wish to change, do so before instantiating the Settings object.
      * Must match key by list position.
      */
-    private static String[] defaultStringSettingsValues = {"", "0 1 2 3 4", "0", "", "500", "8", "2"};
+    private static String[] defaultStringSettingsValues = {"", "0 1 2 3 4", "0", "", "500", "8", "2",""};
 
 
     // FONT SETTINGS.  Each array position has associated name.
@@ -592,6 +600,16 @@ public class Settings extends Observable {
     }
 
     /**
+     * Returns a properties file contents representing a custom memory configuration
+     *
+     * @return a memory configuration, empty if none.
+     */
+    public String getMemoryCustomConfiguration() {
+        return stringSettingsValues[CUSTOM_MEMORY_CONFIG];
+    }
+
+
+    /**
      * Current editor font.  Retained for compatibility but replaced
      * by: getFontByPosition(Settings.EDITOR_FONT)
      *
@@ -839,6 +857,10 @@ public class Settings extends Observable {
 
     public void setMemoryConfiguration(String config) {
         setStringSetting(MEMORY_CONFIGURATION, config);
+        MemoryConfiguration tmp = MemoryConfigurations.getConfigurationByName(config);
+        if (tmp != null && !tmp.builtin) {
+            setStringSetting(CUSTOM_MEMORY_CONFIG, tmp.toPropertiesString());
+        }
     }
 
     /**

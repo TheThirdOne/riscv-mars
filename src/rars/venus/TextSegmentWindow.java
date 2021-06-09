@@ -606,7 +606,7 @@ public class TextSegmentWindow extends JInternalFrame implements Observer {
       */
     private void addAsTextSegmentObserver() {
         try {
-            Memory.getInstance().addObserver(this, Memory.textBaseAddress, Memory.dataSegmentBaseAddress);
+            Memory.getInstance().addObserver(this, Memory.configuration.getTextBaseAddress(),Memory.configuration.getDataSegmentBaseAddress());
         } catch (AddressErrorException aee) {
         }
     }

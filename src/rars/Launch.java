@@ -5,23 +5,16 @@ import rars.riscv.InstructionSet;
 import rars.riscv.dump.DumpFormat;
 import rars.riscv.dump.DumpFormatLoader;
 import rars.riscv.hardware.*;
-import rars.simulator.ProgramArgumentList;
 import rars.simulator.Simulator;
 import rars.util.Binary;
 import rars.util.FilenameFinder;
-import rars.util.MemoryDump;
 import rars.venus.VenusUI;
 import rars.api.Options;
 
 import javax.swing.*;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.PrintStream;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.Observable;
-import java.util.Observer;
 
 /*
 Copyright (c) 2003-2012,  Pete Sanderson and Kenneth Vollmar
@@ -177,14 +170,12 @@ public class Launch {
 
         for (String[] triple : dumpTriples) {
             File file = new File(triple[2]);
-            Integer[] segInfo = MemoryDump.getSegmentBounds(triple[0]);
+            Range segInfo = Memory.configuration.sections.get(triple[0]);
             // If not segment name, see if it is address range instead.  DPS 14-July-2008
             if (segInfo == null) {
                 try {
                     String[] memoryRange = checkMemoryAddressRange(triple[0]);
-                    segInfo = new Integer[2];
-                    segInfo[0] = Binary.stringToInt(memoryRange[0]); // low end of range
-                    segInfo[1] = Binary.stringToInt(memoryRange[1]); // high end of range
+                    segInfo = new Range(Binary.stringToInt(memoryRange[0]),Binary.stringToInt(memoryRange[1]));
                 } catch (NumberFormatException nfe) {
                     segInfo = null;
                 } catch (NullPointerException npe) {
@@ -201,12 +192,12 @@ public class Launch {
                 continue;
             }
             try {
-                int highAddress = program.getMemory().getAddressOfFirstNull(segInfo[0], segInfo[1]) - Memory.WORD_LENGTH_BYTES;
-                if (highAddress < segInfo[0]) {
+                int highAddress = program.getMemory().getAddressOfFirstNull(segInfo.low, segInfo.high) - Memory.WORD_LENGTH_BYTES;
+                if (highAddress < segInfo.low) {
                     out.println("This segment has not been written to, there is nothing to dump.");
                     continue;
                 }
-                format.dumpMemoryRange(file, segInfo[0], highAddress, program.getMemory());
+                format.dumpMemoryRange(file, segInfo.low, highAddress, program.getMemory());
             } catch (FileNotFoundException e) {
                 out.println("Error while attempting to save dump, file " + file + " was not found!");
             } catch (AddressErrorException e) {
@@ -299,8 +290,17 @@ public class Launch {
                 String configName = args[++i];
                 MemoryConfiguration config = MemoryConfigurations.getConfigurationByName(configName);
                 if (config == null) {
-                    out.println("Invalid memory configuration: " + configName);
-                    argsOK = false;
+                    String error = "";
+                    try {
+                        config = MemoryConfigurations.loadNewConfig(new FileInputStream(new File(configName)));
+                        if (config == null) error = " does not define a well specified config";
+                    }catch(FileNotFoundException fe) {
+                        error = " is not the name of a known config or a valid file path";
+                    }
+                    if(config == null) {
+                        out.println("Invalid memory configuration: " + configName + error) ;
+                        argsOK = false;
+                    }
                 } else {
                     MemoryConfigurations.setCurrentConfiguration(config);
                 }
@@ -682,7 +682,7 @@ public class Launch {
     //  Display command line help text
 
     private void displayHelp() {
-        String[] segmentNames = MemoryDump.getSegmentNames();
+        String[] segmentNames = new String[]{".text",".data"};
         String segments = "";
         for (int i = 0; i < segmentNames.length; i++) {
             segments += segmentNames[i];
@@ -718,8 +718,9 @@ public class Launch {
         out.println("     mc <config>  -- set memory configuration.  Argument <config> is");
         out.println("            case-sensitive and possible values are: Default for the default");
         out.println("            32-bit address space, CompactDataAtZero for a 32KB memory with");
-        out.println("            data segment at address 0, or CompactTextAtZero for a 32KB");
-        out.println("            memory with text segment at address 0.");
+        out.println("            data segment at address 0, CompactTextAtZero for a 32KB");
+        out.println("            memory with text segment at address 0, the name of a custom");
+        out.println("            configuration, or a path to a config file.");
         out.println("     me  -- display RARS messages to standard err instead of standard out. ");
         out.println("            Can separate messages from program output using redirection");
         out.println("     nc  -- do not display copyright notice (for cleaner redirected/piped output).");

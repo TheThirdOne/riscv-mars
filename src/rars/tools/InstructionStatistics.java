@@ -219,7 +219,7 @@ public class InstructionStatistics extends AbstractToolAndApplication {
      * registers the tool as observer for the text segment of the program
      */
     protected void addAsObserver() {
-        addAsObserver(Memory.textBaseAddress, Memory.textLimitAddress);
+        addAsObserver(Memory.configuration.text.low,Memory.configuration.text.high);
     }
 
     /**

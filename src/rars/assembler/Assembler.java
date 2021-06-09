@@ -65,7 +65,20 @@ public class Assembler {
     private AddressSpace dataAddress;
     private DataSegmentForwardReferences currentFileDataSegmentForwardReferences,
             accumulatedDataSegmentForwardReferences;
-
+    private ArrayList<DataStruct> datalist;
+    class DataStruct {
+        int address, data, size;
+        ErrorMessage iffails;
+        DataStruct(int address, int data, int size, ErrorMessage iffails){
+            this.address = address;
+            this.data = data;
+            this.size = size;
+            this.iffails = iffails;
+        }
+    }
+    private void setData(int address, int data, int size, ErrorMessage iffails){
+        datalist.add(new DataStruct(address,data,size,iffails));
+    }
     /**
      * Get list of assembler errors and warnings
      *
@@ -99,14 +112,15 @@ public class Assembler {
 
         if (tokenizedProgramFiles == null || tokenizedProgramFiles.size() == 0)
             return null;
-        textAddress = new AddressSpace(Memory.textBaseAddress);
-        dataAddress = new AddressSpace(Memory.dataBaseAddress);
-        externAddress = Memory.externBaseAddress;
+        textAddress = new AddressSpace(Memory.configuration.getTextBaseAddress());
+        dataAddress = new AddressSpace(Memory.configuration.getDataBaseAddress());
+        externAddress = Memory.configuration.getExternBaseAddress();
         currentFileDataSegmentForwardReferences = new DataSegmentForwardReferences();
         accumulatedDataSegmentForwardReferences = new DataSegmentForwardReferences();
         Globals.symbolTable.clear();
         Globals.memory.clear();
         ArrayList<ProgramStatement> machineList = new ArrayList<>();
+        datalist = new ArrayList<>();
         this.errors = new ErrorList();
         if (Globals.debug)
             System.out.println("Assembler first pass begins:");
@@ -288,9 +302,18 @@ public class Assembler {
             } catch (AddressErrorException e) {
                 Token t = statement.getOriginalTokenList().get(0);
                 errors.add(new ErrorMessage(t.getSourceProgram(), t.getSourceLine(), t
-                        .getStartPos(), "Invalid address for text segment: " + e.getAddress()));
+                        .getStartPos(), "Invalid address for text segment: " + statement.getAddress()));
             }
         }
+
+        for (DataStruct ds : datalist) {
+            try {
+                Globals.memory.set(ds.address, ds.data, ds.size);
+            } catch (AddressErrorException e) {
+                if(ds.iffails != null) errors.add(ds.iffails);
+            }
+        }
+
         // Aug. 24, 2005 Ken Vollmar
         // Ensure that I/O "file descriptors" are initialized for a new program run
         SystemIO.resetFiles();
@@ -973,15 +996,10 @@ public class Assembler {
              * instruction)
              */
             else {
-                try {
-                    Globals.memory.set(this.textAddress.get(), value, lengthInBytes);
-                } catch (AddressErrorException e) {
-                    errors.add(new ErrorMessage(token.getSourceProgram(),
-                            token.getSourceLine(), token.getStartPos(), "\""
-                            + this.textAddress.get()
-                            + "\" is not a valid text segment address"));
-                    return;
-                }
+                setData(this.textAddress.get(),value,lengthInBytes,new ErrorMessage(token.getSourceProgram(),
+                        token.getSourceLine(), token.getStartPos(), "\""
+                        + this.textAddress.get()
+                        + "\" is not a valid text segment address"));
                 this.textAddress.increment(lengthInBytes);
             }
         } // end of "if integer token type"
@@ -1133,27 +1151,19 @@ public class Assembler {
                         }
                     }
                     byte[] bytesOfChar = String.valueOf(theChar).getBytes(StandardCharsets.UTF_8);
-                    try {
-                        for (byte b : bytesOfChar) {
-                            Globals.memory.set(this.dataAddress.get(), b,
-                                    DataTypes.CHAR_SIZE);
-                            this.dataAddress.increment(DataTypes.CHAR_SIZE);
-                        }
-                    } catch (AddressErrorException e) {
-                        errors.add(new ErrorMessage(token.getSourceProgram(), token
-                                .getSourceLine(), token.getStartPos(), "\""
-                                + this.dataAddress.get() + "\" is not a valid data segment address"));
+                    ErrorMessage e = new ErrorMessage(token.getSourceProgram(), token
+                            .getSourceLine(), token.getStartPos(), "\""
+                            + this.dataAddress.get() + "\" is not a valid data segment address");
+                    for (byte b : bytesOfChar) {
+                        setData(this.dataAddress.get(),b,DataTypes.CHAR_SIZE, e);
+                        this.dataAddress.increment(DataTypes.CHAR_SIZE);
                     }
-                    
                 }
                 if (direct == Directives.ASCIZ || direct == Directives.STRING) {
-                    try {
-                        Globals.memory.set(this.dataAddress.get(), 0, DataTypes.CHAR_SIZE);
-                    } catch (AddressErrorException e) {
-                        errors.add(new ErrorMessage(token.getSourceProgram(), token
-                                .getSourceLine(), token.getStartPos(), "\""
-                                + this.dataAddress.get() + "\" is not a valid data segment address"));
-                    }
+                    ErrorMessage e = new ErrorMessage(token.getSourceProgram(), token
+                            .getSourceLine(), token.getStartPos(), "\""
+                            + this.dataAddress.get() + "\" is not a valid data segment address");
+                    setData(this.dataAddress.get(),0,DataTypes.CHAR_SIZE, e);
                     this.dataAddress.increment(DataTypes.CHAR_SIZE);
                 }
             }
@@ -1181,14 +1191,10 @@ public class Assembler {
         if (this.autoAlign) {
             this.dataAddress.set(this.alignToBoundary(this.dataAddress.get(), lengthInBytes));
         }
-        try {
-            Globals.memory.set(this.dataAddress.get(), value, lengthInBytes);
-        } catch (AddressErrorException e) {
-            errors.add(new ErrorMessage(token.getSourceProgram(), token.getSourceLine(), token
-                    .getStartPos(), "\"" + this.dataAddress.get()
-                    + "\" is not a valid data segment address"));
-            return this.dataAddress.get();
-        }
+        ErrorMessage e = new ErrorMessage(token.getSourceProgram(), token
+                .getSourceLine(), token.getStartPos(), "\""
+                + this.dataAddress.get() + "\" is not a valid data segment address");
+        setData(this.dataAddress.get(),value,lengthInBytes, e);
         int address = this.dataAddress.get();
         this.dataAddress.increment(lengthInBytes);
         return address;
@@ -1204,14 +1210,12 @@ public class Assembler {
         if (this.autoAlign) {
             this.dataAddress.set(this.alignToBoundary(this.dataAddress.get(), lengthInBytes));
         }
-        try {
-            Globals.memory.setDouble(this.dataAddress.get(), value);
-        } catch (AddressErrorException e) {
-            errors.add(new ErrorMessage(token.getSourceProgram(), token.getSourceLine(), token
-                    .getStartPos(), "\"" + this.dataAddress.get()
-                    + "\" is not a valid data segment address"));
-            return;
-        }
+        ErrorMessage e = new ErrorMessage(token.getSourceProgram(), token.getSourceLine(), token
+                .getStartPos(), "\"" + this.dataAddress.get()
+                + "\" is not a valid data segment address");
+        long longValue = Double.doubleToLongBits(value);
+        setData(this.dataAddress.get(),(int)longValue, DataTypes.WORD_SIZE,e);
+        setData(this.dataAddress.get()+DataTypes.WORD_SIZE,(int)(longValue>>32), DataTypes.WORD_SIZE,e);
         this.dataAddress.increment(lengthInBytes);
     }
 
@@ -1316,10 +1320,7 @@ public class Assembler {
                 labelAddress = localSymtab.getAddressLocalOrGlobal(entry.token.getValue());
                 if (labelAddress != SymbolTable.NOT_FOUND) {
                     // patch address has to be valid b/c we already stored there...
-                    try {
-                        Globals.memory.set(entry.patchAddress, labelAddress, entry.length);
-                    } catch (AddressErrorException aee) {
-                    }
+                    setData(entry.patchAddress,labelAddress,entry.length, null);
                     forwardReferenceList.remove(i);
                     i--; // needed because removal shifted the remaining list indices down
                 }

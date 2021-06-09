@@ -129,6 +129,8 @@ public class ProgramArgumentList {
     // address holding the first argument pointer (argv).
     public void storeProgramArguments() {
         if (programArgumentList == null || programArgumentList.size() == 0) {
+            // If there is no input just make argc = 0 and argv = {NULL} by allocating two words on the stack
+            RegisterFile.getRegister("sp").setValue(Memory.configuration.getStackBaseAddress()-8);
             return;
         }
         // Runtime stack initialization from stack top-down (each is 4 bytes) :
@@ -153,7 +155,7 @@ public class ProgramArgumentList {
         // Follow this pattern for all remaining arguments.
 
 
-        int highAddress = Memory.stackBaseAddress;  // highest non-kernel address, sits "under" stack
+        int highAddress = Memory.configuration.getStackBaseAddress()-1;  // first writeable byte in the stack
         String programArgument;
         int[] argStartAddress = new int[programArgumentList.size()];
         try { // needed for all memory writes
@@ -167,16 +169,11 @@ public class ProgramArgumentList {
                 }
                 argStartAddress[i] = highAddress + 1;
             }
+
+            // Get on a word boundary to start writing argv
+            int stackAddress = highAddress - (highAddress % Memory.WORD_LENGTH_BYTES) - Memory.WORD_LENGTH_BYTES;
+            
             // now place a null word, the arg starting addresses, and arg count onto stack.
-            int stackAddress = Memory.stackPointer;  // base address for runtime stack.
-            if (highAddress < Memory.stackPointer) {
-                // Based on current values for stackBaseAddress and stackPointer, this will
-                // only happen if the combined lengths of program arguments is greater than
-                // 0x7ffffffc - 0x7fffeffc = 0x00001000 = 4096 bytes.  In this case, set
-                // stackAddress to next lower word boundary minus 4 for clearance (since every
-                // byte from highAddress+1 is filled).
-                stackAddress = highAddress - (highAddress % Memory.WORD_LENGTH_BYTES) - Memory.WORD_LENGTH_BYTES;
-            }
             Globals.memory.set(stackAddress, 0, Memory.WORD_LENGTH_BYTES);  // null word for end of argv array
             stackAddress -= Memory.WORD_LENGTH_BYTES;
             for (int i = argStartAddress.length - 1; i >= 0; i--) {
@@ -184,13 +181,12 @@ public class ProgramArgumentList {
                 stackAddress -= Memory.WORD_LENGTH_BYTES;
             }
             Globals.memory.set(stackAddress, argStartAddress.length, Memory.WORD_LENGTH_BYTES); // argc
-            stackAddress -= Memory.WORD_LENGTH_BYTES;
 
             // Need to set $sp register to stack address, $a0 to argc, $a1 to argv
             // Need to by-pass the backstepping mechanism so go directly to Register instead of RegisterFile
-            RegisterFile.getRegister("sp").setValue(stackAddress + Memory.WORD_LENGTH_BYTES);
+            RegisterFile.getRegister("sp").setValue(stackAddress);
             RegisterFile.getRegister("a0").setValue(argStartAddress.length); // argc
-            RegisterFile.getRegister("a1").setValue(stackAddress + Memory.WORD_LENGTH_BYTES + Memory.WORD_LENGTH_BYTES); // argv
+            RegisterFile.getRegister("a1").setValue(stackAddress + Memory.WORD_LENGTH_BYTES); // argv
         } catch (AddressErrorException aee) {
             System.out.println("Internal Error: Memory write error occurred while storing program arguments! " + aee);
             System.exit(0);

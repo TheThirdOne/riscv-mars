@@ -5,12 +5,8 @@ import rars.ProgramStatement;
 import rars.Settings;
 import rars.SimulationException;
 import rars.riscv.Instruction;
-import rars.util.Binary;
 
-import java.util.Collection;
-import java.util.Observable;
-import java.util.Observer;
-import java.util.Vector;
+import java.util.*;
 
 	/*
 Copyright (c) 2003-2009,  Pete Sanderson and Kenneth Vollmar
@@ -48,74 +44,13 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 public class Memory extends Observable {
-
-    /**
-     * base address for (user) text segment: 0x00400000
-     **/
-    public static int textBaseAddress = MemoryConfigurations.getDefaultTextBaseAddress(); //0x00400000;
-    /**
-     * base address for (user) data segment: 0x10000000
-     **/
-    public static int dataSegmentBaseAddress = MemoryConfigurations.getDefaultDataSegmentBaseAddress(); //0x10000000;
-    /**
-     * base address for .extern directive: 0x10000000
-     **/
-    public static int externBaseAddress = MemoryConfigurations.getDefaultExternBaseAddress(); //0x10000000;
-    /**
-     * base address for storing globals
-     **/
-    public static int globalPointer = MemoryConfigurations.getDefaultGlobalPointer(); //0x10008000;
-    /**
-     * base address for storage of non-global static data in data segment: 0x10010000 (from SPIM)
-     **/
-    public static int dataBaseAddress = MemoryConfigurations.getDefaultDataBaseAddress(); //0x10010000; // from SPIM not MIPS
-    /**
-     * base address for heap: 0x10040000 (I think from SPIM not MIPS)
-     **/
-    public static int heapBaseAddress = MemoryConfigurations.getDefaultHeapBaseAddress(); //0x10040000; // I think from SPIM not MIPS
-    /**
-     * starting address for stack: 0x7fffeffc (this is from SPIM not MIPS)
-     **/
-    public static int stackPointer = MemoryConfigurations.getDefaultStackPointer(); //0x7fffeffc;
-    /**
-     * base address for stack: 0x7ffffffc (this is mine - start of highest word below kernel space)
-     **/
-    public static int stackBaseAddress = MemoryConfigurations.getDefaultStackBaseAddress(); //0x7ffffffc;
-    /**
-     * highest address accessible in user (not kernel) mode.
-     **/
-    public static int userHighAddress = MemoryConfigurations.getDefaultUserHighAddress(); //0x7fffffff;
-    /**
-     * kernel boundary.  Only OS can access this or higher address
-     **/
-    public static int kernelBaseAddress = MemoryConfigurations.getDefaultKernelBaseAddress(); //0x80000000;
-    /**
-     * starting address for memory mapped I/O: 0xffff0000 (-65536)
-     **/
-    public static int memoryMapBaseAddress = MemoryConfigurations.getDefaultMemoryMapBaseAddress(); //0xffff0000;
-    /**
-     * highest address acessible in kernel mode.
-     **/
-    public static int kernelHighAddress = MemoryConfigurations.getDefaultKernelHighAddress(); //0xffffffff;
-
     /**
      * Word length in bytes.
      **/
     // NOTE:  Much of the code is hardwired for 4 byte words.  Refactoring this is low priority.
     public static final int WORD_LENGTH_BYTES = 4;
 
-    // TODO: remove this as RISCV is little endian and it is only used in like one spot
-    /**
-     * Constant representing byte order of each memory word.  Little-endian means lowest
-     * numbered byte is right most [3][2][1][0].
-     */
-    public static final boolean LITTLE_ENDIAN = true;
-    /**
-     * Current setting for endian (default LITTLE_ENDIAN)
-     **/
-    private static boolean byteOrder = LITTLE_ENDIAN;
-
-    public static int heapAddress;
+    public static MemoryConfiguration configuration;
 
     // Memory will maintain a collection of observables.  Each one is associated
     // with a specific memory address or address range, and each will have at least
@@ -202,15 +137,6 @@ public class Memory extends Observable {
     // Set "top" address boundary to go with each "base" address.  This determines permissable
     // address range for user program.  Currently limit is 4MB, or 1024 * 1024 * 4 bytes based
     // on the table structures described above (except memory mapped IO, limited to 64KB by range).
-
-    public static int dataSegmentLimitAddress = dataSegmentBaseAddress +
-            BLOCK_LENGTH_WORDS * BLOCK_TABLE_LENGTH * WORD_LENGTH_BYTES;
-    public static int textLimitAddress = textBaseAddress +
-            TEXT_BLOCK_LENGTH_WORDS * TEXT_BLOCK_TABLE_LENGTH * WORD_LENGTH_BYTES;
-    public static int stackLimitAddress = stackBaseAddress -
-            BLOCK_LENGTH_WORDS * BLOCK_TABLE_LENGTH * WORD_LENGTH_BYTES;
-    public static int memoryMapLimitAddress = memoryMapBaseAddress +
-            BLOCK_LENGTH_WORDS * MMIO_TABLE_LENGTH * WORD_LENGTH_BYTES;
     // This will be a Singleton class, only one instance is ever created.  Since I know the 
     // Memory object is always needed, I'll go ahead and create it at the time of class loading.
     // (greedy rather than lazy instantiation).  The constructor is private and getInstance()
@@ -219,6 +145,9 @@ public class Memory extends Observable {
     private static Memory uniqueMemoryInstance = new Memory();
 
 
+    {
+        setConfiguration();
+    }
     /*
      * Private constructor for Memory.  Separate data structures for text and data segments. 
      **/
@@ -297,34 +226,23 @@ public class Memory extends Observable {
      */
 
     public static void setConfiguration() {
-        textBaseAddress = MemoryConfigurations.getCurrentConfiguration().getTextBaseAddress(); //0x00400000;
-        dataSegmentBaseAddress = MemoryConfigurations.getCurrentConfiguration().getDataSegmentBaseAddress(); //0x10000000;
-        externBaseAddress = MemoryConfigurations.getCurrentConfiguration().getExternBaseAddress(); //0x10000000;
-        globalPointer = MemoryConfigurations.getCurrentConfiguration().getGlobalPointer(); //0x10008000;
-        dataBaseAddress = MemoryConfigurations.getCurrentConfiguration().getDataBaseAddress(); //0x10010000; // from SPIM not MIPS
-        heapBaseAddress = MemoryConfigurations.getCurrentConfiguration().getHeapBaseAddress(); //0x10040000; // I think from SPIM not MIPS
-        stackPointer = MemoryConfigurations.getCurrentConfiguration().getStackPointer(); //0x7fffeffc;
-        stackBaseAddress = MemoryConfigurations.getCurrentConfiguration().getStackBaseAddress(); //0x7ffffffc;
-        userHighAddress = MemoryConfigurations.getCurrentConfiguration().getUserHighAddress(); //0x7fffffff;
-        kernelBaseAddress = MemoryConfigurations.getCurrentConfiguration().getKernelBaseAddress(); //0x80000000;
-        memoryMapBaseAddress = MemoryConfigurations.getCurrentConfiguration().getMemoryMapBaseAddress(); //0xffff0000;
-        kernelHighAddress = MemoryConfigurations.getCurrentConfiguration().getKernelHighAddress(); //0xffffffff;
-        dataSegmentLimitAddress = Math.min(MemoryConfigurations.getCurrentConfiguration().getDataSegmentLimitAddress(),
-                dataSegmentBaseAddress +
-                        BLOCK_LENGTH_WORDS * BLOCK_TABLE_LENGTH * WORD_LENGTH_BYTES);
-        textLimitAddress = Math.min(MemoryConfigurations.getCurrentConfiguration().getTextLimitAddress(),
-                textBaseAddress +
-                        TEXT_BLOCK_LENGTH_WORDS * TEXT_BLOCK_TABLE_LENGTH * WORD_LENGTH_BYTES);
-        stackLimitAddress = Math.max(MemoryConfigurations.getCurrentConfiguration().getStackLimitAddress(),
-                stackBaseAddress -
-                        BLOCK_LENGTH_WORDS * BLOCK_TABLE_LENGTH * WORD_LENGTH_BYTES);
-        memoryMapLimitAddress = Math.min(MemoryConfigurations.getCurrentConfiguration().getMemoryMapLimitAddress(),
-                memoryMapBaseAddress +
-                        BLOCK_LENGTH_WORDS * MMIO_TABLE_LENGTH * WORD_LENGTH_BYTES);
+        MemoryConfiguration t = MemoryConfigurations.getCurrentConfiguration();
+        HashMap<String, Range> sections = new HashMap<>();
+        // Default configuration comes from SPIM
+        sections.put(".text", t.text.limit(TEXT_BLOCK_LENGTH_WORDS * TEXT_BLOCK_TABLE_LENGTH * WORD_LENGTH_BYTES));
+        sections.put(".data", t.data.limit(BLOCK_LENGTH_WORDS * BLOCK_TABLE_LENGTH * WORD_LENGTH_BYTES));
+        sections.put("heap",  t.heap);
+        sections.put("stack", t.stack.limitReverse(BLOCK_LENGTH_WORDS * BLOCK_TABLE_LENGTH * WORD_LENGTH_BYTES-1));
+        sections.put("mmio",  t.mmio.limit(BLOCK_LENGTH_WORDS * MMIO_TABLE_LENGTH * WORD_LENGTH_BYTES));
+        configuration =  new MemoryConfiguration(t.getConfigurationIdentifier(),t.getConfigurationName(), sections,t.gp_offset,t.extern_size);
+
+
+        RegisterFile.getRegister("sp").changeResetValue(configuration.getStackBaseAddress());
+        RegisterFile.getRegister("gp").changeResetValue(configuration.getGlobalPointer());
     }
 
     private void initialize() {
-        heapAddress = heapBaseAddress;
+        heapAddress = configuration.getHeapBaseAddress();
         textBlockTable = new ProgramStatement[TEXT_BLOCK_TABLE_LENGTH][];
         dataBlockTable = new int[BLOCK_TABLE_LENGTH][]; // array of null int[] references
         stackBlockTable = new int[BLOCK_TABLE_LENGTH][];
@@ -332,6 +250,8 @@ public class Memory extends Observable {
         System.gc(); // call garbage collector on any Table memory just deallocated.
     }
 
+
+    private int heapAddress;
     // TODO: add some heap managment so programs can malloc and free
     /**
      * Returns the next available word-aligned heap address.  There is no recycling and
@@ -350,11 +270,12 @@ public class Memory extends Observable {
         if (newHeapAddress % 4 != 0) {
             newHeapAddress = newHeapAddress + (4 - newHeapAddress % 4); // next higher multiple of 4
         }
-        if (newHeapAddress >= dataSegmentLimitAddress) {
+        if (newHeapAddress >= configuration.heap.high) {
             throw new IllegalArgumentException("request (" + numBytes + ") exceeds available heap storage");
         }
         heapAddress = newHeapAddress;
         return result;
+
     }
 
    /*  *******************************  THE SETTER METHODS  ******************************/
@@ -378,16 +299,16 @@ public class Memory extends Observable {
         int oldValue = 0;
         if (Globals.debug) System.out.println("memory[" + address + "] set to " + value + "(" + length + " bytes)");
         int relativeByteAddress;
-        if (inDataSegment(address)) {
+        if (configuration.data.contains(address,length)) {
             // in data segment.  Will write one byte at a time, w/o regard to boundaries.
-            relativeByteAddress = address - dataSegmentBaseAddress; // relative to data segment start, in bytes
+            relativeByteAddress = address - configuration.data.low; // relative to data segment start, in bytes
             oldValue = storeBytesInTable(dataBlockTable, relativeByteAddress, length, value);
-        } else if (address > stackLimitAddress && address <= stackBaseAddress) {
+        } else if (configuration.stack.contains(address,length)) {
             // in stack.  Handle similarly to data segment write, except relative byte
             // address calculated "backward" because stack addresses grow down from base.
-            relativeByteAddress = stackBaseAddress - address;
+            relativeByteAddress = configuration.stack.high - address;
             oldValue = storeBytesInTable(stackBlockTable, relativeByteAddress, length, value);
-        } else if (inTextSegment(address)) {
+        } else if (configuration.text.contains(address,length)) {
             // Burch Mod (Jan 2013): replace throw with call to setStatement
             // DPS adaptation 5-Jul-2013: either throw or call, depending on setting
 
@@ -416,9 +337,9 @@ public class Memory extends Observable {
                         "Cannot write directly to text segment!",
                         SimulationException.STORE_ACCESS_FAULT, address);
             }
-        } else if (address >= memoryMapBaseAddress && address < memoryMapLimitAddress) {
+        } else if (configuration.mmio.contains(address,length)) {
             // memory mapped I/O.
-            relativeByteAddress = address - memoryMapBaseAddress;
+            relativeByteAddress = address - configuration.mmio.low;
             oldValue = storeBytesInTable(memoryMapBlockTable, relativeByteAddress, length, value);
         } else {
             // falls outside addressing range
@@ -442,45 +363,7 @@ public class Memory extends Observable {
      * @throws AddressErrorException If address is not on word boundary.
      **/
     public int setRawWord(int address, int value) throws AddressErrorException {
-        int relative, oldValue = 0;
-        checkStoreWordAligned(address);
-        if (inDataSegment(address)) {
-            // in data segment
-            relative = (address - dataSegmentBaseAddress) >> 2; // convert byte address to words
-            oldValue = storeWordInTable(dataBlockTable, relative, value);
-        } else if (address > stackLimitAddress && address <= stackBaseAddress) {
-            // in stack.  Handle similarly to data segment write, except relative
-            // address calculated "backward" because stack addresses grow down from base.
-            relative = (stackBaseAddress - address) >> 2; // convert byte address to words
-            oldValue = storeWordInTable(stackBlockTable, relative, value);
-        } else if (inTextSegment(address)) {
-            // Burch Mod (Jan 2013): replace throw with call to setStatement
-            // DPS adaptation 5-Jul-2013: either throw or call, depending on setting
-            if (Globals.getSettings().getBooleanSetting(Settings.Bool.SELF_MODIFYING_CODE_ENABLED)) {
-                ProgramStatement oldStatement = getStatementNoNotify(address);
-                if (oldStatement != null) {
-                    oldValue = oldStatement.getBinaryStatement();
-                }
-                setStatement(address, new ProgramStatement(value, address));
-            } else {
-                throw new AddressErrorException(
-                        "Cannot write directly to text segment!",
-                        SimulationException.STORE_ACCESS_FAULT, address);
-            }
-        } else if (address >= memoryMapBaseAddress && address < memoryMapLimitAddress) {
-            // memory mapped I/O.
-            relative = (address - memoryMapBaseAddress) >> 2; // convert byte address to word
-            oldValue = storeWordInTable(memoryMapBlockTable, relative, value);
-        } else {
-            // falls outside addressing range
-            throw new AddressErrorException("store address out of range ",
-                    SimulationException.STORE_ACCESS_FAULT, address);
-        }
-        notifyAnyObservers(AccessNotice.WRITE, address, WORD_LENGTH_BYTES, value);
-        if (Globals.getSettings().getBackSteppingEnabled()) {
-            Globals.program.getBackStepper().addMemoryRestoreRawWord(address, oldValue);
-        }
-        return oldValue;
+        return setWord(address,Integer.reverseBytes(value));
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////
@@ -541,9 +424,7 @@ public class Memory extends Observable {
 
 
     /**
-     * Writes 64 bit doubleword value starting at specified Memory address.  Note that
-     * high-order 32 bits are stored in higher (second) memory word regardless
-     * of "endianness".
+     * Writes 64 bit doubleword value starting at specified Memory address.
      *
      * @param address Starting address of Memory address to be set.
      * @param value   Value to be stored at that address.
@@ -562,9 +443,7 @@ public class Memory extends Observable {
     ///////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * Writes 64 bit double value starting at specified Memory address.  Note that
-     * high-order 32 bits are stored in higher (second) memory word regardless
-     * of "endianness".
+     * Writes 64 bit double value starting at specified Memory address.
      *
      * @param address Starting address of Memory address to be set.
      * @param value   Value to be stored at that address.
@@ -597,7 +476,7 @@ public class Memory extends Observable {
                     SimulationException.STORE_ACCESS_FAULT, address);
         }
         if (Globals.debug) System.out.println("memory[" + address + "] set to " + statement.getBinaryStatement());
-        storeProgramStatement(address, statement, textBaseAddress, textBlockTable);
+        storeProgramStatement(address, statement, configuration.text.low, textBlockTable);
     }
 
 
@@ -623,19 +502,19 @@ public class Memory extends Observable {
     private int get(int address, int length, boolean notify) throws AddressErrorException {
         int value = 0;
         int relativeByteAddress;
-        if (inDataSegment(address)) {
+        if (configuration.data.contains(address,length)) {
             // in data segment.  Will read one byte at a time, w/o regard to boundaries.
-            relativeByteAddress = address - dataSegmentBaseAddress; // relative to data segment start, in bytes
+            relativeByteAddress = address - configuration.data.low; // relative to data segment start, in bytes
             value = fetchBytesFromTable(dataBlockTable, relativeByteAddress, length);
-        } else if (address > stackLimitAddress && address <= stackBaseAddress) {
+        } else if (configuration.stack.contains(address,length)) {
             // in stack. Similar to data, except relative address computed "backward"
-            relativeByteAddress = stackBaseAddress - address;
+            relativeByteAddress = configuration.stack.high - address;
             value = fetchBytesFromTable(stackBlockTable, relativeByteAddress, length);
-        } else if (address >= memoryMapBaseAddress && address < memoryMapLimitAddress) {
+        } else if (configuration.mmio.contains(address,length)) {
             // memory mapped I/O.
-            relativeByteAddress = address - memoryMapBaseAddress;
+            relativeByteAddress = address - configuration.mmio.low;
             value = fetchBytesFromTable(memoryMapBlockTable, relativeByteAddress, length);
-        } else if (inTextSegment(address)) {
+        } else if (configuration.text.contains(address,length)) {
             // Burch Mod (Jan 2013): replace throw with calls to getStatementNoNotify & getBinaryStatement
             // DPS adaptation 5-Jul-2013: either throw or call, depending on setting
             if (Globals.getSettings().getBooleanSetting(Settings.Bool.SELF_MODIFYING_CODE_ENABLED)) {
@@ -682,39 +561,7 @@ public class Memory extends Observable {
     // Doing so would be detrimental to simulation runtime performance, so
     // I decided to keep the duplicate logic.
     public int getRawWord(int address) throws AddressErrorException {
-        int value = 0;
-        int relative;
-        checkLoadWordAligned(address);
-        if (inDataSegment(address)) {
-            // in data segment
-            relative = (address - dataSegmentBaseAddress) >> 2; // convert byte address to words
-            value = fetchWordFromTable(dataBlockTable, relative);
-        } else if (address > stackLimitAddress && address <= stackBaseAddress) {
-            // in stack. Similar to data, except relative address computed "backward"
-            relative = (stackBaseAddress - address) >> 2; // convert byte address to words
-            value = fetchWordFromTable(stackBlockTable, relative);
-        } else if (address >= memoryMapBaseAddress && address < memoryMapLimitAddress) {
-            // memory mapped I/O.
-            relative = (address - memoryMapBaseAddress) >> 2;
-            value = fetchWordFromTable(memoryMapBlockTable, relative);
-        } else if (inTextSegment(address)) {
-            // Burch Mod (Jan 2013): replace throw with calls to getStatementNoNotify & getBinaryStatement
-            // DPS adaptation 5-Jul-2013: either throw or call, depending on setting
-            if (Globals.getSettings().getBooleanSetting(Settings.Bool.SELF_MODIFYING_CODE_ENABLED)) {
-                ProgramStatement stmt = getStatementNoNotify(address);
-                value = stmt == null ? 0 : stmt.getBinaryStatement();
-            } else {
-                throw new AddressErrorException(
-                        "Cannot read directly from text segment!",
-                        SimulationException.LOAD_ACCESS_FAULT, address);
-            }
-        } else {
-            // falls outside addressing range
-            throw new AddressErrorException("address out of range ",
-                    SimulationException.LOAD_ACCESS_FAULT, address);
-        }
-        notifyAnyObservers(AccessNotice.READ, address, Memory.WORD_LENGTH_BYTES, value);
-        return value;
+        return Integer.reverseBytes(getWord(address));
     }
 
     /////////////////////////////////////////////////////////////////////////
@@ -743,15 +590,15 @@ public class Memory extends Observable {
         Integer value = null;
         int relative;
         checkLoadWordAligned(address);
-        if (inDataSegment(address)) {
+        if (configuration.data.contains(address,4)) {
             // in data segment
-            relative = (address - dataSegmentBaseAddress) >> 2; // convert byte address to words
+            relative = (address - configuration.data.low) >> 2; // convert byte address to words
             value = fetchWordOrNullFromTable(dataBlockTable, relative);
-        } else if (address > stackLimitAddress && address <= stackBaseAddress) {
+        } else if (configuration.stack.contains(address,4)) {
             // in stack. Similar to data, except relative address computed "backward"
-            relative = (stackBaseAddress - address) >> 2; // convert byte address to words
+            relative = (configuration.stack.high - address) >> 2; // convert byte address to words
             value = fetchWordOrNullFromTable(stackBlockTable, relative);
-        } else if (inTextSegment(address)) {
+        } else if (configuration.text.contains(address,4)) {
             try {
                 value = (getStatementNoNotify(address) == null) ? null : getStatementNoNotify(address).getBinaryStatement();
             } catch (AddressErrorException aee) {
@@ -905,7 +752,7 @@ public class Memory extends Observable {
                     SimulationException.LOAD_ACCESS_FAULT, address);
         }
         if (inTextSegment(address))
-            return readProgramStatement(address, textBaseAddress, textBlockTable, notify);
+            return readProgramStatement(address, configuration.text.low, textBlockTable, notify);
         else
             return new ProgramStatement(get(address, WORD_LENGTH_BYTES), address);
     }
@@ -951,7 +798,7 @@ public class Memory extends Observable {
 
     /**
      * Handy little utility to find out if given address is in the text
-     * segment (starts at Memory.textBaseAddress).
+     * segment (starts at Memory.configuration.getTextBaseAddress()).
      * Note that RARS does not implement the entire text segment space,
      * but it does implement enough for hundreds of thousands of lines
      * of code.
@@ -961,31 +808,31 @@ public class Memory extends Observable {
      * false otherwise.
      */
     public static boolean inTextSegment(int address) {
-        return address >= textBaseAddress && address < textLimitAddress;
+        return configuration.text.contains(address,4);
     }
 
     /**
      * Handy little utility to find out if given address is in RARS data
-     * segment (starts at Memory.dataSegmentBaseAddress).
+     * segment (starts at Memory.configuration.getDataSegmentBaseAddress()).
      *
      * @param address integer memory address
      * @return true if that address is within RARS-defined data segment,
      * false otherwise.
      */
     public static boolean inDataSegment(int address) {
-        return address >= dataSegmentBaseAddress && address < dataSegmentLimitAddress;
+        return configuration.data.contains(address,4);
     }
 
     /**
      * Handy little utility to find out if given address is in the Memory Map area
-     * starts at Memory.memoryMapBaseAddress, range 0xffff0000 to 0xffffffff.
+     * starts at Memory.configuration.getMemoryMapBaseAddress(), range 0xffff0000 to 0xffffffff.
      *
      * @param address integer memory address
      * @return true if that address is within RARS-defined memory map (MMIO) area,
      * false otherwise.
      */
     public static boolean inMemoryMapSegment(int address) {
-        return address >= memoryMapBaseAddress && address < kernelHighAddress;
+        return configuration.mmio.contains(address,4);
     }
 
 
@@ -1224,7 +1071,7 @@ public class Memory extends Observable {
                 else
                     return 0;
             }
-            if (byteOrder == LITTLE_ENDIAN) bytePositionInMemory = 3 - bytePositionInMemory;
+            bytePositionInMemory = 3 - bytePositionInMemory;
             if (op == STORE) {
                 oldValue = replaceByte(blockTable[block][offset], bytePositionInMemory,
                         oldValue, bytePositionInValue);

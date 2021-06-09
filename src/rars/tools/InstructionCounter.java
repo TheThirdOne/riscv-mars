@@ -272,7 +272,7 @@ public class InstructionCounter extends AbstractToolAndApplication {
 
     @Override
     protected void addAsObserver() {
-        addAsObserver(Memory.textBaseAddress, Memory.textLimitAddress);
+        addAsObserver(Memory.configuration.text.low,Memory.configuration.text.high);
     }
 
     @Override

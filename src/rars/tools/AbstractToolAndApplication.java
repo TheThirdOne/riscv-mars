@@ -79,8 +79,8 @@ public abstract class AbstractToolAndApplication extends JFrame implements Tool,
     private Color backgroundColor = Color.WHITE;
 
 
-    private int lowMemoryAddress = Memory.dataSegmentBaseAddress;
-    private int highMemoryAddress = Memory.stackBaseAddress;
+    private int lowMemoryAddress = Memory.configuration.total.low;
+    private int highMemoryAddress = Memory.configuration.total.high;
     // For Tool, is set true when "Connect" clicked, false when "Disconnect" clicked.
     // For app, is set true when "Assemble and Run" clicked, false when program terminates.
     private volatile boolean observing = false;

@@ -4,6 +4,7 @@ import rars.Globals;
 import rars.Settings;
 import rars.assembler.Directives;
 import rars.riscv.*;
+import rars.riscv.hardware.Memory;
 
 import java.util.ArrayList;
 import java.util.Collections;

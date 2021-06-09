@@ -457,8 +457,16 @@ public class MemoryReferenceVisualization extends AbstractToolAndApplication {
     //textBaseAddress=0x00400000, dataSegmentBaseAddress=0x10000000, globalPointer=0x10008000
     //dataBaseAddress=0x10010000, heapBaseAddress=0x10040000, memoryMapBaseAddress=0xffff0000
     private void initializeDisplayBaseChoices() {
-        int[] displayBaseAddressArray = {Memory.textBaseAddress, Memory.dataSegmentBaseAddress, Memory.globalPointer, Memory.dataBaseAddress,
-                Memory.heapBaseAddress, Memory.memoryMapBaseAddress};
+        int[] displayBaseAddressArray = {
+                Memory.configuration.getTextBaseAddress(),
+                Memory.configuration.getExternBaseAddress(),
+                Memory.configuration.getGlobalPointer(),
+                Memory.configuration.getDataBaseAddress(),
+                Memory.configuration.getHeapBaseAddress(),
+                Memory.configuration.getMemoryMapBaseAddress(),
+        };
+
+
         // Must agree with above in number and order...
         String[] descriptions = {" (text)", " (global data)", " (gp)", " (static data)", " (heap)", " (memory map)"};
         displayBaseAddresses = displayBaseAddressArray;
