@@ -84,7 +84,7 @@ public class VenusUI extends JFrame {
     private JMenuItem runGo, runStep, runBackstep, runReset, runAssemble, runStop, runPause, runClearBreakpoints, runToggleBreakpoints;
     private JCheckBoxMenuItem settingsLabel, settingsPopupInput, settingsValueDisplayBase, settingsAddressDisplayBase,
             settingsExtended, settingsAssembleOnOpen, settingsAssembleAll, settingsAssembleOpen, settingsWarningsAreErrors,
-            settingsStartAtMain, settingsProgramArguments, settingsSelfModifyingCode,settingsRV64;
+            settingsStartAtMain, settingsProgramArguments, settingsSelfModifyingCode, settingsRV64, settingsDeriveCurrentWorkingDirectory;
     private JMenuItem settingsExceptionHandler, settingsEditor, settingsHighlighting, settingsMemoryConfiguration;
     private JMenuItem helpHelp, helpAbout;
 
@@ -108,8 +108,8 @@ public class VenusUI extends JFrame {
     private Action settingsLabelAction, settingsPopupInputAction, settingsValueDisplayBaseAction, settingsAddressDisplayBaseAction,
             settingsExtendedAction, settingsAssembleOnOpenAction, settingsAssembleOpenAction, settingsAssembleAllAction,
             settingsWarningsAreErrorsAction, settingsStartAtMainAction, settingsProgramArgumentsAction,
-            settingsExceptionHandlerAction, settingsEditorAction,
-            settingsHighlightingAction, settingsMemoryConfigurationAction, settingsSelfModifyingCodeAction,settingsRV64Action;
+            settingsExceptionHandlerAction, settingsEditorAction, settingsHighlightingAction, settingsMemoryConfigurationAction,
+            settingsSelfModifyingCodeAction, settingsRV64Action, settingsDeriveCurrentWorkingDirectoryAction;
     private Action helpHelpAction, helpAboutAction;
 
 
@@ -461,7 +461,9 @@ public class VenusUI extends JFrame {
                     csrTab.updateRegisters();
                 }
             };
-
+            settingsDeriveCurrentWorkingDirectoryAction = new SettingsAction("Derive current working directory",
+                    "If set, the working directory is derived from the main file instead of the RARS executable directory.",
+                    Settings.Bool.DERIVE_CURRENT_WORKING_DIRECTORY);
 
 
             settingsEditorAction = new SettingsEditorAction("Editor...", null,
@@ -615,6 +617,8 @@ public class VenusUI extends JFrame {
         settingsSelfModifyingCode.setSelected(Globals.getSettings().getBooleanSetting(Settings.Bool.SELF_MODIFYING_CODE_ENABLED));
         settingsRV64 = new JCheckBoxMenuItem(settingsRV64Action);
         settingsRV64.setSelected(Globals.getSettings().getBooleanSetting(Settings.Bool.RV64_ENABLED));
+        settingsDeriveCurrentWorkingDirectory = new JCheckBoxMenuItem(settingsDeriveCurrentWorkingDirectoryAction);
+        settingsDeriveCurrentWorkingDirectory.setSelected(Globals.getSettings().getBooleanSetting(Settings.Bool.DERIVE_CURRENT_WORKING_DIRECTORY));
         settingsAssembleOnOpen = new JCheckBoxMenuItem(settingsAssembleOnOpenAction);
         settingsAssembleOnOpen.setSelected(Globals.getSettings().getBooleanSetting(Settings.Bool.ASSEMBLE_ON_OPEN));
         settingsAssembleAll = new JCheckBoxMenuItem(settingsAssembleAllAction);
@@ -643,6 +647,7 @@ public class VenusUI extends JFrame {
         settings.add(settingsAssembleOpen);
         settings.add(settingsWarningsAreErrors);
         settings.add(settingsStartAtMain);
+        settings.add(settingsDeriveCurrentWorkingDirectory);
         settings.addSeparator();
         settings.add(settingsExtended);
         settings.add(settingsSelfModifyingCode);

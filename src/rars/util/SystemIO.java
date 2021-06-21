@@ -377,12 +377,17 @@ public class SystemIO {
             return -1;
         }   // fileErrorString would have been set
 
-
+        File filepath = new File(filename);
+        if (!filepath.isAbsolute() && Globals.program != null && Globals.getSettings()
+                .getBooleanSetting(Settings.Bool.DERIVE_CURRENT_WORKING_DIRECTORY)) {
+            String parent = new File(Globals.program.getFilename()).getParent();
+            filepath = new File(parent, filename);
+        }
         if (flags == O_RDONLY) // Open for reading only
         {
             try {
                 // Set up input stream from disk file
-                inputStream = new FileInputStream(filename);
+                inputStream = new FileInputStream(filepath);
                 FileIOData.setStreamInUse(fdToUse, inputStream); // Save stream for later use
             } catch (FileNotFoundException e) {
                 fileErrorString = "File " + filename + " not found, open for input.";
@@ -392,7 +397,7 @@ public class SystemIO {
         {
             // Set up output stream to disk file
             try {
-                outputStream = new FileOutputStream(filename, ((flags & O_APPEND) != 0));
+                outputStream = new FileOutputStream(filepath, ((flags & O_APPEND) != 0));
                 FileIOData.setStreamInUse(fdToUse, outputStream); // Save stream for later use
             } catch (FileNotFoundException e) {
                 fileErrorString = "File " + filename + " not found, open for output.";
