@@ -78,6 +78,7 @@ public class Launch {
      * segments are <tt>.text</tt> and <tt>.data</tt>.  Current supported dump formats <br>
      * are <tt>Binary</tt>, <tt>HexText</tt>, <tt>BinaryText</tt>.<br>
      * h  -- display help.  Use by itself and with no filename</br>
+     * harts <n> -- the amount of harts to use for running RARS with<br>
      * hex  -- display memory or register contents in hexadecimal (default)<br>
      * ic  -- display count of basic instructions 'executed'");
      * mc  -- set memory configuration.  Option has 1 argument, e.g.<br>
@@ -382,6 +383,10 @@ public class Launch {
             }
             if (args[i].toLowerCase().equals("ic")) { // added 19-Jul-2012 DPS
                 countInstructions = true;
+                continue;
+            }
+            if (args[i].toLowerCase().equals("harts")) {
+                Globals.setHarts(Integer.valueOf(args[++i]));
                 continue;
             }
             
@@ -713,6 +718,7 @@ public class Launch {
         out.println("            <segment> = " + segments+", or a range like 0x400000-0x10000000");
         out.println("            <format> = " + formats);
         out.println("      h  -- display this help.  Use by itself with no filename.");
+        out.println("  harts <n> -- the amount of harts to use for running RARS with");
         out.println("    hex  -- display memory or register contents in hexadecimal (default)");
         out.println("     ic  -- display count of basic instructions 'executed'");
         out.println("     mc <config>  -- set memory configuration.  Argument <config> is");
@@ -749,5 +755,3 @@ public class Launch {
     }
 
 }
-
-   	

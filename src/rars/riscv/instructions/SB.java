@@ -2,6 +2,7 @@ package rars.riscv.instructions;
 
 import rars.Globals;
 import rars.riscv.hardware.AddressErrorException;
+import rars.riscv.hardware.ReservationTable.bitWidth;
 
 /*
 Copyright (c) 2017,  Benjamin Landers
@@ -36,9 +37,7 @@ public class SB extends Store {
     }
 
     public void store(int address, long data) throws AddressErrorException {
+        Globals.reservationTables.unreserveAddress(0, address & ~0b11, bitWidth.word);
         Globals.memory.setByte(address, (int)data & 0x000000FF);
     }
 }
-
-
-

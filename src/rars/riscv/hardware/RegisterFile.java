@@ -5,6 +5,7 @@ import rars.Settings;
 import rars.assembler.SymbolTable;
 import rars.riscv.Instruction;
 
+import java.util.ArrayList;
 import java.util.Observer;
 
 /*
@@ -46,7 +47,7 @@ public class RegisterFile {
 
     public static final int GLOBAL_POINTER_REGISTER = 3;
     public static final int STACK_POINTER_REGISTER = 2;
-    private static final RegisterBlock instance = new RegisterBlock('x', new Register[]{
+    public static final RegisterBlock instance = new RegisterBlock('x', new Register[]{
             new Register("zero", 0, 0), new Register("ra", 1, 0),
             new Register("sp", STACK_POINTER_REGISTER, Memory.stackPointer),
             new Register("gp", GLOBAL_POINTER_REGISTER, Memory.globalPointer),
@@ -65,8 +66,44 @@ public class RegisterFile {
             new Register("t3", 28, 0), new Register("t4", 29, 0),
             new Register("t5", 30, 0), new Register("t6", 31, 0)
     });
-
+    public static ArrayList<RegisterBlock> gInstance;
     private static Register programCounter = new Register("pc", -1, Memory.textBaseAddress);
+
+    private static ArrayList<Register> gProgramCounter;
+    
+    public static void initProgramCounter(){
+        gProgramCounter = new ArrayList<>();
+        for(int i = 1;  i < Globals.getHarts(); i++){
+            Register temp = new Register("pc", -1, Memory.textBaseAddress);
+            gProgramCounter.add(temp);
+        }
+    }
+    public static void initGRegisterBlock(){
+        gInstance = new ArrayList<>();
+        for(int i = 0; i < Globals.getHarts(); i++){
+            RegisterBlock temp = new RegisterBlock('x', new Register[]{
+                new Register("zero", 0, 0, i), new Register("ra", 1, 0, i),
+                new Register("sp", STACK_POINTER_REGISTER, Memory.stackPointer, i),
+                new Register("gp", GLOBAL_POINTER_REGISTER, Memory.globalPointer, i),
+                new Register("tp", 4, 0, i), new Register("t0", 5, 0, i),
+                new Register("t1", 6, 0, i), new Register("t2", 7, 0, i),
+                new Register("s0", 8, 0, i), new Register("s1", 9, 0, i),
+                new Register("a0", 10, 0, i), new Register("a1", 11, 0, i),
+                new Register("a2", 12, 0, i), new Register("a3", 13, 0, i),
+                new Register("a4", 14, 0, i), new Register("a5", 15, 0, i),
+                new Register("a6", 16, 0, i), new Register("a7", 17, 0, i),
+                new Register("s2", 18, 0, i), new Register("s3", 19, 0, i),
+                new Register("s4", 20, 0, i), new Register("s5", 21, 0, i),
+                new Register("s6", 22, 0, i), new Register("s7", 23, 0, i),
+                new Register("s8", 24, 0, i), new Register("s9", 25, 0, i),
+                new Register("s10", 26, 0,i), new Register("s11", 27, 0, i),
+                new Register("t3", 28, 0, i), new Register("t4", 29, 0, i),
+                new Register("t5", 30, 0, i), new Register("t6", 31, 0, i)
+        });
+            gInstance.add(temp);        
+        }
+
+    }
 
     /**
      * This method updates the register value who's number is num.  Also handles the lo and hi registers
@@ -86,7 +123,13 @@ public class RegisterFile {
             }
         }
     }
-
+    public static void updateRegister(int num, long val, int hart) {
+        if (num == 0) {
+            ;
+        } else {    
+            gInstance.get(hart).updateRegister(num, val);
+        }
+    }
     /**
      * Sets the value of the register given to the value given.
      *
@@ -109,7 +152,10 @@ public class RegisterFile {
         return (int) instance.getValue(num);
 
     }
+    public static int getValue(int num, int hart) {
+        return (int) gInstance.get(hart).getValue(num);
 
+    }
     /**
      * Returns the value of the register.
      *
@@ -121,7 +167,10 @@ public class RegisterFile {
         return instance.getValue(num);
 
     }
+    public static long getValueLong(int num, int hart) {
+        return gInstance.get(hart).getValue(num);
 
+    }
     /**
      * Returns the value of the register.
      *
@@ -142,7 +191,11 @@ public class RegisterFile {
     public static Register[] getRegisters() {
         return instance.getRegisters();
     }
-
+    public static Register[] getRegisters(int hart) {
+        if(gInstance == null)
+            initGRegisterBlock();
+        return gInstance.get(hart).getRegisters();
+    }
     /**
      * Get register object corresponding to given name.  If no match, return null.
      *
@@ -168,7 +221,9 @@ public class RegisterFile {
     public static void initializeProgramCounter(int value) {
         programCounter.setValue((long)value);
     }
-
+    public static void initializeProgramCounter(int value, int hart){
+        gProgramCounter.get(hart).setValue(value);
+    }
     /**
      * Will initialize the Program Counter to either the default reset value, or the address
      * associated with source program global label "main", if it exists as a text segment label
@@ -214,7 +269,9 @@ public class RegisterFile {
     public static int getProgramCounter() {
         return (int)programCounter.getValue();
     }
-
+    public static int getProgramCounter(int hart){
+        return (int) gProgramCounter.get(hart).getValue();
+    }
     /**
      * Returns Register object for program counter.  Use with caution.
      *
@@ -223,7 +280,11 @@ public class RegisterFile {
     public static Register getProgramCounterRegister() {
         return programCounter;
     }
-
+    public static Register getProgramCounterRegister(int hart) {
+        if(gProgramCounter == null)
+            initProgramCounter();
+        return gProgramCounter.get(hart);
+    }
     /**
      * For returning the program counter's initial (reset) value.
      *
@@ -255,7 +316,9 @@ public class RegisterFile {
     public static void incrementPC() {
         programCounter.setValue(programCounter.getValue() + Instruction.INSTRUCTION_LENGTH);
     }
-
+    public static void incrementPC(int hart){
+        gProgramCounter.get(hart).setValue(gProgramCounter.get(hart).getValue() + Instruction.INSTRUCTION_LENGTH);
+    }
     /**
      * Each individual register is a separate object and Observable.  This handy method
      * will add the given Observer to each one.  Currently does not apply to Program
@@ -264,7 +327,9 @@ public class RegisterFile {
     public static void addRegistersObserver(Observer observer) {
         instance.addRegistersObserver(observer);
     }
-
+    public static void addRegistersObserver(Observer observer, int hart) {
+        gInstance.get(hart).addRegistersObserver(observer);
+    }
     /**
      * Each individual register is a separate object and Observable.  This handy method
      * will delete the given Observer from each one.  Currently does not apply to Program

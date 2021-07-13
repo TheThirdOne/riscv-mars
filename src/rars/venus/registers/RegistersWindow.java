@@ -12,6 +12,7 @@ public class RegistersWindow extends RegisterBlockWindow {
     /*
      * The tips to show when hovering over the names of the registers
      */
+    private int hart;
     private static final String[] regToolTips = {
                 /* zero */  "constant 0",
                 /* ra   */  "return address (used by function call)",
@@ -50,6 +51,12 @@ public class RegistersWindow extends RegisterBlockWindow {
 
     public RegistersWindow() {
         super(getRegisters(), regToolTips, "Current 32 bit value");
+        hart = -1;
+    }
+
+    public RegistersWindow(int hart){
+        super(getRegisters(hart), regToolTips, "Current 32 bit value", hart);
+        this.hart = hart;
     }
 
     /*
@@ -59,6 +66,12 @@ public class RegistersWindow extends RegisterBlockWindow {
         Register[] base = RegisterFile.getRegisters();
         Register[] out = Arrays.copyOf(base, base.length + 1);
         out[base.length] = RegisterFile.getProgramCounterRegister();
+        return out;
+    }
+    private static Register[] getRegisters(int hart) {
+        Register[] base = RegisterFile.getRegisters(hart);
+        Register[] out = Arrays.copyOf(base, base.length + 1);
+        out[base.length] = RegisterFile.getProgramCounterRegister(hart);
         return out;
     }
 
@@ -73,7 +86,9 @@ public class RegistersWindow extends RegisterBlockWindow {
     protected void beginObserving() {
         RegisterFile.addRegistersObserver(this);
     }
-
+    protected void beginObserving(int hart){
+        RegisterFile.addRegistersObserver(this, hart);
+    }
     protected void endObserving() {
         RegisterFile.deleteRegistersObserver(this);
     }

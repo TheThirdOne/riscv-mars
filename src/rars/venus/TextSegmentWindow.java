@@ -488,7 +488,9 @@ public class TextSegmentWindow extends JInternalFrame implements Observer {
         highlightStepAtAddress(RegisterFile.getProgramCounter());
     }
 
-
+    public void highlightStepAtPC(int hart) {
+        highlightStepAtAddress(RegisterFile.getProgramCounter(hart));
+    }
     /**
      * Highlights the source code line whose address matches the given
      * text segment address.

@@ -11,10 +11,13 @@ import rars.venus.ExecutePane;
 import rars.venus.FileStatus;
 import rars.venus.GuiAction;
 import rars.venus.VenusUI;
+import rars.venus.GeneralVenusUI;
+import rars.venus.GeneralExecutePane;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.util.ArrayList;
 import java.util.Observable;
 import java.util.Observer;
 
@@ -53,20 +56,27 @@ public class RunStepAction extends GuiAction {
 
     private String name;
     private ExecutePane executePane;
+    private ArrayList<GeneralExecutePane> gExecutePanes;
     private VenusUI mainUI;
-
+    private ArrayList<GeneralVenusUI> hartWindows;
     public RunStepAction(String name, Icon icon, String descrip,
                          Integer mnemonic, KeyStroke accel, VenusUI gui) {
         super(name, icon, descrip, mnemonic, accel);
         mainUI = gui;
+        hartWindows = Globals.getHartWindows();
     }
 
     /**
      * perform next simulated instruction step.
      */
     public void actionPerformed(ActionEvent e) {
+        hartWindows = Globals.getHartWindows();
         name = this.getValue(Action.NAME).toString();
         executePane = mainUI.getMainPane().getExecutePane();
+        gExecutePanes = new ArrayList<>();
+        for(int i = 0; i < hartWindows.size(); i++){
+            gExecutePanes.add(hartWindows.get(i).getMainPane().getExecutePane());
+        }
         if (FileStatus.isAssembled()) {
             if (!mainUI.getStarted()) {  // DPS 17-July-2008
                 processProgramArgumentsIfAny();
@@ -74,6 +84,10 @@ public class RunStepAction extends GuiAction {
             mainUI.setStarted(true);
             mainUI.getMessagesPane().selectRunMessageTab();
             executePane.getTextSegmentWindow().setCodeHighlighting(true);
+            for(int i = 0; i < hartWindows.size(); i++){
+                hartWindows.get(i).setStarted(true);
+                gExecutePanes.get(i).getTextSegmentWindow().setCodeHighlighting(true);
+            }
 
             // Setup callback for after step finishes
             final Observer stopListener =
@@ -88,6 +102,12 @@ public class RunStepAction extends GuiAction {
             Simulator.getInstance().addObserver(stopListener);
 
             Globals.program.startSimulation(1, null);
+            for(int i = 0; i < hartWindows.size(); i++){
+                Simulator.getInstance(i).addObserver(stopListener);
+                Globals.gPrograms.get(i).startSimulation(1, null, i);
+                gExecutePanes.get(i).getRegistersWindow().updateRegisters(i);
+                //System.out.println("Hart " + i + " " + RegisterFile.gInstance.get(i).getRegister(6).getValue());
+            }
         } else {
             // note: this should never occur since "Step" is only enabled after successful assembly.
             JOptionPane.showMessageDialog(mainUI, "The program must be assembled before it can be run.");
@@ -101,13 +121,25 @@ public class RunStepAction extends GuiAction {
         executePane.getFloatingPointWindow().updateRegisters();
         executePane.getControlAndStatusWindow().updateRegisters();
         executePane.getDataSegmentWindow().updateValues();
+
+        for(int i = 0; i < hartWindows.size(); i++){
+            gExecutePanes.get(i).getRegistersWindow().updateRegisters(i);
+            gExecutePanes.get(i).getFloatingPointWindow().updateRegisters();
+            gExecutePanes.get(i).getControlAndStatusWindow().updateRegisters();
+        }
         if (!done) {
+            for(int i = 0; i < hartWindows.size(); i++){
+                gExecutePanes.get(i).getTextSegmentWindow().highlightStepAtPC();
+            }
             executePane.getTextSegmentWindow().highlightStepAtPC();
             FileStatus.set(FileStatus.RUNNABLE);
         }
         if (done) {
             RunGoAction.resetMaxSteps();
             executePane.getTextSegmentWindow().unhighlightAllSteps();
+            for(int i = 0; i < hartWindows.size(); i++){
+                gExecutePanes.get(i).getTextSegmentWindow().unhighlightAllSteps();
+            }
             FileStatus.set(FileStatus.TERMINATED);
         }
         if (done && pe == null) {
@@ -131,8 +163,17 @@ public class RunStepAction extends GuiAction {
             executePane.getTextSegmentWindow().setCodeHighlighting(true);
             executePane.getTextSegmentWindow().unhighlightAllSteps();
             executePane.getTextSegmentWindow().highlightStepAtAddress(RegisterFile.getProgramCounter() - 4);
+            for(int i = 0; i < hartWindows.size(); i++){
+                hartWindows.get(i).getRegistersPane().setSelectedComponent(executePane.getControlAndStatusWindow());
+                gExecutePanes.get(i).getTextSegmentWindow().setCodeHighlighting(true);
+                gExecutePanes.get(i).getTextSegmentWindow().unhighlightAllSteps();
+                gExecutePanes.get(i).getTextSegmentWindow().highlightStepAtAddress(RegisterFile.getProgramCounter() - 4);
+            }
         }
         mainUI.setReset(false);
+        for(int i = 0; i < hartWindows.size(); i++){
+            hartWindows.get(i).setReset(false);
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////////////
@@ -142,6 +183,11 @@ public class RunStepAction extends GuiAction {
     // $a0 gets argument count (argc), $a1 gets stack address of first arg pointer (argv).
     private void processProgramArgumentsIfAny() {
         String programArguments = executePane.getTextSegmentWindow().getProgramArguments();
+        ArrayList<String> gProgramArgumentsArrayList = new ArrayList<>();
+        for(int i = 0; i < hartWindows.size(); i++){
+            gProgramArgumentsArrayList.add(gExecutePanes.get(i).getTextSegmentWindow().getProgramArguments());
+        }
+        //TODO
         if (programArguments == null || programArguments.length() == 0 ||
                 !Globals.getSettings().getBooleanSetting(Settings.Bool.PROGRAM_ARGUMENTS)) {
             return;

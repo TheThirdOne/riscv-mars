@@ -37,6 +37,9 @@ public class BGE extends Branch {
 
     public boolean willBranch(ProgramStatement statement) {
         int[] operands = statement.getOperands();
-        return RegisterFile.getValueLong(operands[0]) >= RegisterFile.getValueLong(operands[1]);
+        if(statement.getCurrentHart() == -1)
+            return RegisterFile.getValueLong(operands[0]) >= RegisterFile.getValueLong(operands[1]);
+        else
+            return RegisterFile.getValueLong(operands[0], statement.getCurrentHart()) >= RegisterFile.getValueLong(operands[1], statement.getCurrentHart());
     }
 }

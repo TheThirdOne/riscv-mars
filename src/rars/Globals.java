@@ -2,10 +2,12 @@ package rars;
 
 import rars.assembler.SymbolTable;
 import rars.riscv.hardware.Memory;
+import rars.riscv.hardware.ReservationTables;
 import rars.riscv.InstructionSet;
 import rars.riscv.SyscallNumberOverride;
 import rars.util.PropertiesFile;
 import rars.venus.VenusUI;
+import rars.venus.GeneralVenusUI;
 
 import java.util.ArrayList;
 import java.util.Enumeration;
@@ -60,6 +62,8 @@ public class Globals {
      * the program currently being worked with.  Used by GUI only, not command line.
      **/
     public static RISCVprogram program;
+
+    public static ArrayList<RISCVprogram> gPrograms;
     /**
      * Symbol table for file currently being assembled.
      **/
@@ -68,6 +72,10 @@ public class Globals {
      * Simulated memory component.
      **/
     public static Memory memory;
+    /**
+     * Simulated reservation tables component.
+     **/
+    public static ReservationTables reservationTables;
     /**
      * Lock variable used at head of synchronized block to guard memory and registers
      **/
@@ -140,6 +148,35 @@ public class Globals {
 
     public static boolean runSpeedPanelExists = false;
 
+    private static int harts = 1;
+
+    private static ArrayList<GeneralVenusUI> hartWindows =  new ArrayList<>();
+
+    public static void setHartWindows(){
+        for (int i = 1; i < Globals.getHarts(); i++) {
+            GeneralVenusUI temp= new GeneralVenusUI(String.format("Hart %d", i));
+            hartWindows.add(temp);
+        }
+    }
+
+    public static ArrayList<GeneralVenusUI> getHartWindows(){
+        return hartWindows;
+    }
+
+    public static int getHarts() {
+        return harts;
+    }
+
+    public static void setHarts(int i) {
+        if ((harts == 1 && i < 0) || (harts == 7 && i > 0)) {
+            return;
+        } if (i > 0) {
+            reservationTables = new ReservationTables(++harts);
+        } else {
+            reservationTables = new ReservationTables(--harts);
+        }
+    }
+
     private static String getCopyrightYears() {
         return "2003-2019";
     }
@@ -166,7 +203,8 @@ public class Globals {
 
     public static void initialize(boolean gui) {
         if (!initialized) {
-            memory = Memory.getInstance();  //clients can use Memory.getInstance instead of Globals.memory
+            memory = Memory.getInstance(); //clients can use Memory.getInstance instead of Globals.memory
+            reservationTables = new ReservationTables(harts);
             symbolTable = new SymbolTable("global");
             settings = new Settings(gui);
             instructionSet = new InstructionSet();

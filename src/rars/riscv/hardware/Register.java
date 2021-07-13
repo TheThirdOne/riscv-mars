@@ -41,6 +41,7 @@ public class Register extends Observable {
     private String name;
     private int number;
     private long resetValue;
+    private int hart;
     // volatile should be enough to allow safe multi-threaded access
     // w/o the use of synchronized methods.  getValue and setValue
     // are the only methods here used by the register collection
@@ -60,8 +61,15 @@ public class Register extends Observable {
         number = num;
         value = val;
         resetValue = val;
+        hart = -1;
     }
-
+    public Register(String n, int num, long val, int hart) {
+        name = n;
+        number = num;
+        value = val;
+        resetValue = val;
+        this.hart = hart;
+    }
     /**
      * Returns the name of the Register.
      *
@@ -171,7 +179,10 @@ public class Register extends Observable {
     private void notifyAnyObservers(int type) {
         if (this.countObservers() > 0) {// && Globals.program != null) && Globals.program.inSteppedExecution()) {
             this.setChanged();
-            this.notifyObservers(new RegisterAccessNotice(type, this.name));
+            if(this.hart == -1)
+                this.notifyObservers(new RegisterAccessNotice(type, this.name));
+            else
+                this.notifyObservers(new RegisterAccessNotice(type, this.name, hart));
         }
     }
 

@@ -366,6 +366,10 @@ public class RISCVprogram {
         sim.startSimulation(RegisterFile.getProgramCounter(), maxSteps, breakPoints);
     }
 
+    public void startSimulation(int maxSteps, int[] breakPoints, int hart) {
+        Simulator sim = Simulator.getInstance(hart);
+        sim.startSimulation(RegisterFile.getProgramCounter(hart), maxSteps, breakPoints, hart);
+    }
     /**
      * Instantiates a new {@link MacroPool} and sends reference of this
      * {@link RISCVprogram} to it

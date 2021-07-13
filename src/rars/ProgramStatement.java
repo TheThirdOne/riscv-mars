@@ -65,6 +65,7 @@ public class ProgramStatement implements Comparable<ProgramStatement> {
     private int textAddress;
     private int sourceLine;
     private int binaryStatement;
+    private int currrentHart;
     private boolean altered;
     private static final String invalidOperator = "<INVALID>";
 
@@ -517,6 +518,15 @@ public class ProgramStatement implements Comparable<ProgramStatement> {
         source = src;
     }
 
+    /**
+     * Set the current hart for this program statement.
+     *
+     * @param hart the new current hart
+     */
+    public void setCurrentHart(int hart) {
+        currrentHart = hart;
+    }
+
 
     /**
      * Produces RISCVprogram object representing the source file containing this statement.
@@ -643,6 +653,15 @@ public class ProgramStatement implements Comparable<ProgramStatement> {
      **/
     public int[] getOperands() {
         return operands;
+    }
+
+    /**
+     * Produces current hart that will simulate this statement.
+     *
+     * @return curent hart.
+     */
+    public int getCurrentHart() {
+        return currrentHart;
     }
 
     /**
@@ -873,5 +892,4 @@ public class ProgramStatement implements Comparable<ProgramStatement> {
             }
         }
     }
-
 }

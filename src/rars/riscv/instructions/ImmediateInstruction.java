@@ -52,11 +52,22 @@ public abstract class ImmediateInstruction extends BasicInstruction {
     public void simulate(ProgramStatement statement) {
         int[] operands = statement.getOperands();
         if (InstructionSet.rv64){
-            RegisterFile.updateRegister(operands[0], compute(RegisterFile.getValueLong(operands[1]),
+            if(statement.getCurrentHart() == -1)
+                RegisterFile.updateRegister(operands[0], compute(RegisterFile.getValueLong(operands[1]),
                     (operands[2] << 20) >> 20)); // make sure the immediate is sign-extended
+            else
+                RegisterFile.updateRegister(operands[0], compute(RegisterFile.getValueLong(operands[1], statement.getCurrentHart()),
+                    (operands[2] << 20) >> 20), statement.getCurrentHart()); // make sure the immediate is sign-extended
         }else {
-            RegisterFile.updateRegister(operands[0], computeW(RegisterFile.getValue(operands[1]),
+            
+            if(statement.getCurrentHart() == -1)
+                RegisterFile.updateRegister(operands[0], computeW(RegisterFile.getValue(operands[1]),
                     (operands[2] << 20) >> 20)); // make sure the immediate is sign-extended
+            else{
+                RegisterFile.updateRegister(operands[0], computeW(RegisterFile.getValue(operands[1], statement.getCurrentHart()),
+                    (operands[2] << 20) >> 20), statement.getCurrentHart()); // make sure the immediate is sign-extended
+                System.out.println("Hart " + (statement.getCurrentHart() + 1) +" :" + "Register " + operands[0] + " : " + RegisterFile.getValue(operands[1], statement.getCurrentHart()));
+            }
         }
     }
 
@@ -72,6 +83,6 @@ public abstract class ImmediateInstruction extends BasicInstruction {
      * @return the result to be stored from the instruction
      */
     protected int computeW(int value, int immediate){
-        return (int) compute(value,immediate);
+        return (int) compute(value, immediate);
     }
 }

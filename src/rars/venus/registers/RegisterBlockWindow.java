@@ -61,7 +61,8 @@ public abstract class RegisterBlockWindow extends JPanel implements Observer {
     private boolean highlighting;
     private int highlightRow;
     private Register[] registers;
-
+    private boolean notMainUI = true;
+    private int hart;
     private static final int NAME_COLUMN = 0;
     private static final int NUMBER_COLUMN = 1;
     private static final int VALUE_COLUMN = 2;
@@ -76,6 +77,7 @@ public abstract class RegisterBlockWindow extends JPanel implements Observer {
         Simulator.getInstance().addObserver(this);
         settings = Globals.getSettings();
         this.registers = registers;
+        this.hart = -1;
         clearHighlighting();
         table = new MyTippedJTable(new RegTableModel(setupWindow()), registerDescriptions,
                 new String[]{"Each register has a tool tip describing its usage convention", "Corresponding register number", valueTip}) {
@@ -92,7 +94,28 @@ public abstract class RegisterBlockWindow extends JPanel implements Observer {
         this.setLayout(new BorderLayout());  // table display will occupy entire width if widened
         this.add(new JScrollPane(table, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED));
     }
+    
+    public RegisterBlockWindow(Register[] registers, String[] registerDescriptions, String valueTip, int hart) {
+        Simulator.getInstance(hart).addObserver(this);
+        settings = Globals.getSettings();
+        this.registers = registers;
+        this.hart = hart;
+        clearHighlighting();
+        table = new MyTippedJTable(new RegTableModel(setupWindow()), registerDescriptions,
+                new String[]{"Each register has a tool tip describing its usage convention", "Corresponding register number", valueTip}) {
+        };
+        table.getColumnModel().getColumn(NAME_COLUMN).setPreferredWidth(50);
+        table.getColumnModel().getColumn(NUMBER_COLUMN).setPreferredWidth(25);
+        table.getColumnModel().getColumn(VALUE_COLUMN).setPreferredWidth(60);
 
+        // Display register values (String-ified) right-justified in mono font
+        table.getColumnModel().getColumn(NAME_COLUMN).setCellRenderer(new RegisterCellRenderer(MonoRightCellRenderer.MONOSPACED_PLAIN_12POINT, SwingConstants.LEFT));
+        table.getColumnModel().getColumn(NUMBER_COLUMN).setCellRenderer(new RegisterCellRenderer(MonoRightCellRenderer.MONOSPACED_PLAIN_12POINT, SwingConstants.RIGHT));
+        table.getColumnModel().getColumn(VALUE_COLUMN).setCellRenderer(new RegisterCellRenderer(MonoRightCellRenderer.MONOSPACED_PLAIN_12POINT, SwingConstants.RIGHT));
+        table.setPreferredScrollableViewportSize(new Dimension(200, 700));
+        this.setLayout(new BorderLayout());  // table display will occupy entire width if widened
+        this.add(new JScrollPane(table, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED));
+    }
     protected abstract String formatRegister(Register value, int base);
 
     protected abstract void beginObserving();
@@ -153,7 +176,12 @@ public abstract class RegisterBlockWindow extends JPanel implements Observer {
                     Globals.getGui().getMainPane().getExecutePane().getValueDisplayBase()), i, 2);
         }
     }
-
+    public void updateRegisters(int hart) {
+        for (int i = 0; i < registers.length; i++) {
+            ((RegTableModel) table.getModel()).setDisplayAndModelValueAt(formatRegister(registers[i],
+                    Globals.getHartWindows().get(hart).getMainPane().getExecutePane().getValueDisplayBase()), i, 2);
+        }
+    }
     /**
      * Highlight the row corresponding to the given register.
      *
@@ -182,7 +210,7 @@ public abstract class RegisterBlockWindow extends JPanel implements Observer {
      * @param obj        Auxiliary object with additional information.
      */
     public void update(Observable observable, Object obj) {
-        if (observable == rars.simulator.Simulator.getInstance()) {
+        if (observable == rars.simulator.Simulator.getInstance() || observable ==  rars.simulator.Simulator.getInstance(hart)) {
             SimulatorNotice notice = (SimulatorNotice) obj;
             if (notice.getAction() == SimulatorNotice.SIMULATOR_START) {
                 // Simulated MIPS execution starts.  Respond to memory changes if running in timed
@@ -203,7 +231,8 @@ public abstract class RegisterBlockWindow extends JPanel implements Observer {
                 // AddressCellRenderer class in DataSegmentWindow.java.
                 this.highlighting = true;
                 this.highlightCellForRegister((Register) observable);
-                Globals.getGui().getRegistersPane().setSelectedComponent(this);
+                if(notMainUI && hart == -1)
+                    Globals.getGui().getRegistersPane().setSelectedComponent(this);
             }
         }
     }
