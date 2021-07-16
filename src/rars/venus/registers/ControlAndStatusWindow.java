@@ -28,7 +28,8 @@ public class ControlAndStatusWindow extends RegisterBlockWindow {
             /*instret*/"Instructions retired (same as cycle in RARS)",
             /*cycleh*/ "High 32 bits of cycle",
             /*timeh*/  "High 32 bits of time",
-            /*instreth*/ "High 32 bits of instret"
+            /*instreth*/ "High 32 bits of instret",
+            /*mhartid*/"ID of the hardware thread running the code"
     };
 
     public ControlAndStatusWindow() {

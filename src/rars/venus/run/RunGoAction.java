@@ -16,6 +16,7 @@ import rars.venus.VenusUI;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.util.ArrayList;
 import java.util.Observable;
 import java.util.Observer;
 
@@ -77,7 +78,6 @@ public class RunGoAction extends GuiAction {
             if (mainUI.getReset() || mainUI.getStarted()) {
 
                 mainUI.setStarted(true);  // added 8/27/05
-
                 mainUI.getMessagesPane().postMessage(
                         name + ": running " + FileStatus.getFile().getName() + "\n\n");
                 mainUI.getMessagesPane().selectRunMessageTab();
@@ -163,6 +163,7 @@ public class RunGoAction extends GuiAction {
         SystemIO.resetFiles(); // close any files opened in MIPS program
         // Bring CSRs to the front if terminated due to exception.
         if (pe != null) {
+
             mainUI.getRegistersPane().setSelectedComponent(executePane.getControlAndStatusWindow());
             executePane.getTextSegmentWindow().setCodeHighlighting(true);
             executePane.getTextSegmentWindow().unhighlightAllSteps();

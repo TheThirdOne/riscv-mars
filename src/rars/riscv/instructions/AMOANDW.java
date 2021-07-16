@@ -1,13 +1,9 @@
 package rars.riscv.instructions;
 
-import rars.Globals;
-import rars.riscv.hardware.AddressErrorException;
-import rars.riscv.hardware.ReservationTable.bitWidth;
-
 /*
-Copyright (c) 2017,  Benjamin Landers
+Copyright (c) 2021, Giancarlo Pernudi Segura
 
-Developed by Benjamin Landers (benjaminrlanders@gmail.com)
+Developed by Giancarlo Pernudi Segura at the University of Alberta (pernudi@ualberta.ca)
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
@@ -31,13 +27,13 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 (MIT license, http://www.opensource.org/licenses/mit-license.html)
  */
 
-public class SB extends Store {
-    public SB() {
-        super("sb t1, -100(t2)", "Store byte : Store the low-order 8 bits of t1 into the effective memory byte address", "000");
+public class AMOANDW extends AtomicMemoryOperation {
+    public AMOANDW() {
+        super("amoand.w t0, t1, (t2)", "Loads value at t2 and places it into t0, ANDS value t1 and t0 (new), and saves at memory location t2.", "01100");
     }
 
-    public void store(int address, long data) throws AddressErrorException {
-        Globals.reservationTables.unreserveAddress(0, address & ~0b11, bitWidth.word);
-        Globals.memory.setByte(address, (int)data & 0x000000FF);
+    @Override
+    protected long binaryOperation(long value1, long value2) {
+        return value1 & value2;
     }
 }

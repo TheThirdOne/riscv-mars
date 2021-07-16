@@ -52,6 +52,10 @@ public class RegistersWindow extends RegisterBlockWindow {
         super(getRegisters(), regToolTips, "Current 32 bit value");
     }
 
+    public RegistersWindow(String s){
+        super(getRegisters(), regToolTips, "Current 32 bit value", "GeneralGUI");
+    }
+
     /*
      * A simple wrapper to add pc into the Registers array
      */

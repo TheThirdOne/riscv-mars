@@ -68,7 +68,6 @@ public abstract class AbstractToolAndApplication extends JFrame implements Tool,
     protected boolean isBeingUsedAsATool = false;  // can use to determine whether invoked as Tool or stand-alone.
     private JDialog dialog;  // used only for Tool use.  This is the pop-up dialog that appears when menu item selected.
     protected Window theWindow;  // highest level GUI component (a JFrame for app, a JDialog for Tool)
-
     // Major GUI components
     private JLabel headingLabel;
     private String title;  // descriptive title for title bar provided to constructor.

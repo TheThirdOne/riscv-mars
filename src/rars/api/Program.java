@@ -130,6 +130,7 @@ public class Program {
      */
     public void setup(ArrayList<String> args, String STDIN){
         RegisterFile.resetRegisters();
+        Globals.reservationTables.reset();
         FloatingPointRegisterFile.resetRegisters();
         ControlAndStatusRegisterFile.resetRegisters();
         InterruptController.reset();

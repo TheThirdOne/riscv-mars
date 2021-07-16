@@ -61,6 +61,7 @@ public abstract class RegisterBlockWindow extends JPanel implements Observer {
     private boolean highlighting;
     private int highlightRow;
     private Register[] registers;
+    private boolean notMainUI = true;
 
     private static final int NAME_COLUMN = 0;
     private static final int NUMBER_COLUMN = 1;
@@ -91,6 +92,11 @@ public abstract class RegisterBlockWindow extends JPanel implements Observer {
         table.setPreferredScrollableViewportSize(new Dimension(200, 700));
         this.setLayout(new BorderLayout());  // table display will occupy entire width if widened
         this.add(new JScrollPane(table, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED));
+    }
+
+    public RegisterBlockWindow(Register[] registers2, String[] regtooltips, String string, String string2) {
+        this(registers2, regtooltips, string);
+        notMainUI = false;
     }
 
     protected abstract String formatRegister(Register value, int base);
@@ -203,7 +209,8 @@ public abstract class RegisterBlockWindow extends JPanel implements Observer {
                 // AddressCellRenderer class in DataSegmentWindow.java.
                 this.highlighting = true;
                 this.highlightCellForRegister((Register) observable);
-                Globals.getGui().getRegistersPane().setSelectedComponent(this);
+                if(notMainUI)
+                    Globals.getGui().getRegistersPane().setSelectedComponent(this);
             }
         }
     }

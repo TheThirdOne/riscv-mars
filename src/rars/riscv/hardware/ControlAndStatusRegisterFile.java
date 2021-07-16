@@ -70,13 +70,15 @@ public class ControlAndStatusRegisterFile {
                 null, // cycleh
                 null, // timeh
                 null, // instreth
+                null, // mhartid
         };
         tmp[1] = new LinkedRegister("fflags", 0x001, tmp[3], 0x1F);
         tmp[2] = new LinkedRegister("frm", 0x002, tmp[3], 0xE0);
 
         tmp[14] = new LinkedRegister("cycleh", 0xC80,tmp[11], 0xFFFFFFFF_00000000L);
         tmp[15] = new LinkedRegister("timeh", 0xC81, tmp[12],0xFFFFFFFF_00000000L);
-        tmp[16] = new LinkedRegister("instreth",0xC82, tmp[13],0xFFFFFFFF_00000000L);
+        tmp[16] = new LinkedRegister("instreth", 0xC82, tmp[13], 0xFFFFFFFF_00000000L);
+        tmp[17] = new ReadOnlyRegister("mhartid", 0xF10, 0);
         instance = new RegisterBlock('_', tmp); // prefix not used
     }
 

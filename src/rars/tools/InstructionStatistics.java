@@ -226,7 +226,7 @@ public class InstructionStatistics extends AbstractToolAndApplication {
      * decodes the instruction and determines the category of the instruction.
      * <p>
      * The instruction is decoded by checking the java instance of the instruction.
-     * Only the most relevant instructions are decoded and categorized.
+     * Supported instructions are RV32I, RV64I, M, and A extensions.
      *
      * @param instruction the instruction to decode
      * @return the category of the instruction
@@ -259,6 +259,8 @@ public class InstructionStatistics extends AbstractToolAndApplication {
             return InstructionStatistics.CATEGORY_MEM;      // lb, lh, lwl, lw, lbu, lhu, lwr
         if (instruction instanceof Store)
             return InstructionStatistics.CATEGORY_MEM;      // sb, sh, swl, sw, swr
+        if (instruction instanceof Atomic)
+            return InstructionStatistics.CATEGORY_MEM;      // a extension
 
         return InstructionStatistics.CATEGORY_OTHER;
     }

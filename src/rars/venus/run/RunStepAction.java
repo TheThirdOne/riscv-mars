@@ -15,6 +15,7 @@ import rars.venus.VenusUI;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.util.ArrayList;
 import java.util.Observable;
 import java.util.Observer;
 
@@ -101,6 +102,7 @@ public class RunStepAction extends GuiAction {
         executePane.getFloatingPointWindow().updateRegisters();
         executePane.getControlAndStatusWindow().updateRegisters();
         executePane.getDataSegmentWindow().updateValues();
+
         if (!done) {
             executePane.getTextSegmentWindow().highlightStepAtPC();
             FileStatus.set(FileStatus.RUNNABLE);

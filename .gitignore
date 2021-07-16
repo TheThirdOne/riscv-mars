@@ -6,3 +6,10 @@ out
 .classpath
 .project
 examples/riscv
+
+# RARS build
+build/
+rars.jar
+
+# macOS
+.DS_Store

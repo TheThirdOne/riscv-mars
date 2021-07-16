@@ -2,6 +2,7 @@ package rars;
 
 import rars.assembler.SymbolTable;
 import rars.riscv.hardware.Memory;
+import rars.riscv.hardware.ReservationTables;
 import rars.riscv.InstructionSet;
 import rars.riscv.SyscallNumberOverride;
 import rars.util.PropertiesFile;
@@ -68,6 +69,10 @@ public class Globals {
      * Simulated memory component.
      **/
     public static Memory memory;
+    /**
+     * Simulated reservation tables component.
+     **/
+    public static ReservationTables reservationTables;
     /**
      * Lock variable used at head of synchronized block to guard memory and registers
      **/
@@ -140,6 +145,11 @@ public class Globals {
 
     public static boolean runSpeedPanelExists = false;
 
+    private static int harts = 1;
+
+    public static int getHarts() {
+        return harts;
+    }
     private static String getCopyrightYears() {
         return "2003-2019";
     }
@@ -166,7 +176,8 @@ public class Globals {
 
     public static void initialize(boolean gui) {
         if (!initialized) {
-            memory = Memory.getInstance();  //clients can use Memory.getInstance instead of Globals.memory
+            memory = Memory.getInstance(); //clients can use Memory.getInstance instead of Globals.memory
+            reservationTables = new ReservationTables(harts);
             symbolTable = new SymbolTable("global");
             settings = new Settings(gui);
             instructionSet = new InstructionSet();

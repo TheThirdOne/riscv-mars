@@ -1,13 +1,12 @@
 package rars.riscv.instructions;
 
-import rars.Globals;
-import rars.riscv.hardware.AddressErrorException;
-import rars.riscv.hardware.ReservationTable.bitWidth;
+import rars.riscv.BasicInstruction;
+import rars.riscv.BasicInstructionFormat;
 
 /*
-Copyright (c) 2017,  Benjamin Landers
+Copyright (c) 2021, Giancarlo Pernudi Segura
 
-Developed by Benjamin Landers (benjaminrlanders@gmail.com)
+Developed by Giancarlo Pernudi Segura at the University of Alberta (pernudi@ualberta.ca)
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
@@ -31,13 +30,20 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 (MIT license, http://www.opensource.org/licenses/mit-license.html)
  */
 
-public class SB extends Store {
-    public SB() {
-        super("sb t1, -100(t2)", "Store byte : Store the low-order 8 bits of t1 into the effective memory byte address", "000");
+/**
+ * Base class for all Atomic instructions
+ *
+ * @author Giancarlo Pernudi Segura
+ * @version May 2017
+ */
+public abstract class Atomic extends BasicInstruction {
+    public Atomic(String usage, String description, String funct3, String funct5) {
+        super(usage, description, BasicInstructionFormat.R_FORMAT,
+                funct5 + " 00sssss ttttt " + funct3 + " fffff 0101111");
     }
 
-    public void store(int address, long data) throws AddressErrorException {
-        Globals.reservationTables.unreserveAddress(0, address & ~0b11, bitWidth.word);
-        Globals.memory.setByte(address, (int)data & 0x000000FF);
+    public Atomic(String usage, String description, String funct3, String funct5, boolean rv64) {
+        super(usage, description, BasicInstructionFormat.R_FORMAT,
+                funct5 + " 00sssss ttttt " + funct3 + " fffff 0101111", rv64);
     }
 }
